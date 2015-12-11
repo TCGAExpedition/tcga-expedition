@@ -2,14 +2,14 @@
 Provides data management and computing infrastructure to support biomedical investigation using Big Data.
 
 
-<b>System requirements</b>
+#System requirements
 
 Unix 64-bit
 
 
-<b>Installation</b>
+#Installation
 
-<b>1.</b> Select and install storage
+<b>1. Select and install storage</b>
 
   - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
   
@@ -19,19 +19,19 @@ Unix 64-bit
  
 <b>NOTE:</b> We recommend to use PostgreSQL - it's much faster than RDF store.
 
-<b>2.</b> Configure
+<b>2. Configure</b>
 
 Go through resources/tcgaexpedition.conf file and add required fields.
 
 
-<b>Example</b>
+#Example
 
 Download Clinical data for acc:
 ```bash
 java -jar tcgaExpedition-1.1.jar acc clinical public
 ```
 
-<b>Availabe Analysis Types</b>
+#Availabe Analysis Types
 
 <HTML>
 
