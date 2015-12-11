@@ -26,11 +26,10 @@ Go through resources/tcgaexpedition.conf file and add required fields.
 
 <b>Example</b>
 
-Start with Clinical data:
-
--- download Clinical data for acc
+Download Clinical data for acc:
+```bash
 java -jar tcgaExpedition-1.1.jar acc clinical public
-
+```
 
 <b>Availabe Analysis Types</b>
 
