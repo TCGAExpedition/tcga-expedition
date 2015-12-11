@@ -9,7 +9,7 @@ Unix 64-bit
 
 <b>Installation</b>
 
-< b>1.</b> Select and install storage
+<b>1.</b> Select and install storage
 
   - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
   
