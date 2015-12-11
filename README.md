@@ -9,12 +9,9 @@ Unix 64-bit
 
 #Installation
 
-<b>1. Select and install storage</b>
+<b>1. Select and install one of the supported storage</b>
 
-  - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
-  
- OR
-
+ - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
  - <i>Virtuoso</i>: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
  
 <b>NOTE:</b> We recommend to use PostgreSQL - it's much faster than RDF store.
