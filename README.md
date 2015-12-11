@@ -9,16 +9,17 @@ Unix 64-bit
 
 <b>Installation</b>
 
-1. Select and install storage
+< b>1.</b> Select and install storage
+
   - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
   
  OR
 
  - <i>Virtuoso</i>: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
-
+ 
 <b>NOTE:</b> We recommend to use PostgreSQL - it's much faster than RDF store.
 
-2. Configure
+<b>2.</b> Configure
 
 Go through resources/tcgaexpedition.conf file and add required fields.
 
