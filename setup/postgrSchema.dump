@@ -1,0 +1,1878 @@
+--
+-- PostgreSQL database dump
+--
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: pgrr; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE pgrr WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
+
+
+ALTER DATABASE pgrr OWNER TO postgres;
+
+\connect pgrr
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Name: add_column(text, text, text, text); Type: FUNCTION; Schema: public; Owner: <your_role>
+--
+
+CREATE FUNCTION add_column(schema_name text, table_name text, column_name text, data_type text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$ DECLARE _tmp text; BEGIN 
+
+  EXECUTE format('SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema=%L AND table_name=%L AND column_name=%L', schema_name, table_name, column_name) INTO _tmp; IF _tmp IS NULL THEN EXECUTE format('ALTER TABLE %I.%I ADD COLUMN %I %s;', schema_name, table_name, column_name, data_type); END IF; 
+
+END$$;
+
+
+ALTER FUNCTION public.add_column(schema_name text, table_name text, column_name text, data_type text) OWNER TO <your_role>;
+
+--
+-- Name: insert_from_tempo(regclass, text); Type: FUNCTION; Schema: public; Owner: <your_role>
+--
+
+CREATE FUNCTION insert_from_tempo(_tempo_table regclass, _dest_table text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$DECLARE
+   _curs refcursor;
+   rec   record;
+BEGIN
+
+OPEN _curs FOR EXECUTE
+ 'SELECT * FROM ' || _tempo_table;
+
+LOOP
+   FETCH NEXT FROM _curs INTO rec;
+   EXIT WHEN rec IS NULL;
+
+   IF _dest_table='protocol' OR _dest_table='subscription' THEN
+	EXECUTE format('INSERT INTO %I (uuid, ' || rec.predicate ||') VALUES ('
+	|| quote_literal(rec.uuid) || ', ' || quote_literal(rec.object) ||')',_dest_table);
+   ELSE	
+	EXECUTE format('UPDATE %I SET ' || rec.predicate ||'='|| quote_literal(rec.object) ||' WHERE uuid=' || quote_literal(rec.uuid) ||'; 
+	INSERT INTO %I (uuid, ' || rec.predicate ||') 
+	SELECT ' || quote_literal(rec.uuid) ||',' || quote_literal(rec.object) || 
+	' WHERE NOT EXISTS (SELECT 1 FROM %I WHERE uuid=' || quote_literal(rec.uuid) ||')', _dest_table, _dest_table, _dest_table);
+    END IF;
+    
+END LOOP;
+
+END$$;
+
+
+ALTER FUNCTION public.insert_from_tempo(_tempo_table regclass, _dest_table text) OWNER TO <your_role>;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: center_links; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE center_links (
+    uuid character(36),
+    centername text,
+    centertype text,
+    code text,
+    displayname text,
+    shortname text
+);
+
+
+ALTER TABLE center_links OWNER TO <your_role>;
+
+--
+-- Name: clin_meta; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE clin_meta (
+    uuid character(36),
+    label text,
+    type text,
+    tssabbr text,
+    aliquotbarcode text,
+    aliquotuuid character(36),
+    origuuid character(36),
+    analytecode text,
+    centercode text,
+    diseaseabbr text,
+    origbarcode text,
+    patientbarcode text,
+    patientuuid character(36),
+    project text,
+    samplebarcode text,
+    samplebarcodenovial text,
+    sampletypecode text,
+    sampleuuid character(36),
+    samplevial text,
+    tcgaarchivepath text,
+    tcgafilename text,
+    isdeleted text
+);
+
+
+ALTER TABLE clin_meta OWNER TO <your_role>;
+
+--
+-- Name: datatype_links; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE datatype_links (
+    uuid character(36),
+    label text,
+    datecreated timestamp without time zone
+);
+
+
+ALTER TABLE datatype_links OWNER TO <your_role>;
+
+COPY datatype_links (uuid, label, datecreated) FROM stdin;
+0068b83e-9906-41c2-ad24-024a694961a9	Expression_Exon	2014-05-15 17:01:45
+06bb8d19-1538-42c8-b388-9b9bc2092d43	RNASeq	2014-05-15 17:01:45
+0e2298d0-8f23-4488-8b6e-91813bb7cdf0	DNA_Methylation	2014-05-15 17:01:45
+1254b030-e435-405b-a938-70479ded2708	miRNASeq	2014-05-15 17:01:45
+173eacf3-239e-4450-97fc-076727fef69f	Fragment_Analysis_Results	2014-05-15 17:01:45
+1c112191-1a57-43a7-9ead-b30f92deeac7	CNV_(SNP_Array)	2014-05-15 17:01:45
+27955783-84cf-4a4c-85a0-870830d508b9	TotalRNASeqV2	2014-05-15 17:01:45
+7adc5f09-7b03-45d7-8f20-25eaab0a5a13	CNV_(Low_Pass_DNASeq)	2014-05-15 17:01:45
+88a3b214-8ebd-4d78-91af-513a41b7e9b2	CNV_(CN_Array)	2014-05-15 17:01:45
+8c1823c6-725f-426f-aa74-f43e2f1153f3	Expression_Gene	2014-05-15 17:01:45
+9b1f220f-0827-4495-a4f1-5e9b54801226	Somatic_Mutations	2014-05-15 17:01:45
+b6759269-36ef-4508-9bab-ed50c58a355e	Expression_Protein	2014-05-15 17:01:45
+c4085d8e-4ab3-48bd-87d2-af81f625ddf5	Expression_miRNA	2014-05-15 17:01:45
+d83d6f72-7bfa-4bbf-ad12-e8f139d02166	Protected_Mutations	2014-05-15 17:01:45
+edbbd684-4c12-47a5-8c4b-016ff45672b9	Clinical	2014-05-15 17:01:45
+fc5c0402-0120-4fd4-9fb4-e283b989d46c	RNASeqV2	2014-05-15 17:01:45
+b64b2143-18c2-48d6-8ad1-72f720fa0705	RNA-Seq_(cgHub)	2014-09-22 18:56:19
+b7201dfd-8e12-4d0a-97f7-1c5750fc84cd	miRNA-Seq_(cgHub)	2014-09-22 18:56:20
+1d5223cd-d6a9-4675-bc25-f2e6515abc69	WGS_(cgHub)	2014-09-22 18:56:20
+0ccc5341-cd1b-4f3f-8408-a822296089da	WXS_(cgHub)	2014-09-22 18:56:20
+b61041c9-a3fb-4c02-b8ea-7c3a81beaa86	Bisulfite-Seq_(cgHub)	2014-10-30 17:54:57
+da1eaee5-86e3-4e35-9cbf-ffc65cf11c01	Mass_Spectrometry	2015-12-09 02:58:57
+4c642ff7-e853-4bac-a8bd-2d321005c3b0	CN_Level4	2015-12-09 03:02:11
+\.
+
+--
+-- Name: diseasedatatype_pairs; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE diseasedatatype_pairs (
+    uuid character(36),
+    studyabbreviation text,
+    datatype text
+);
+
+
+ALTER TABLE diseasedatatype_pairs OWNER TO <your_role>;
+
+--
+-- Name: diseasestudy_links; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE diseasestudy_links (
+    uuid character(36),
+    datecreated timestamp without time zone,
+    studyabbreviation text,
+    studyname text
+);
+
+
+ALTER TABLE diseasestudy_links OWNER TO <your_role>;
+
+--
+-- Name: pgrr_meta; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE pgrr_meta (
+    uuid character(36),
+    datearchived timestamp without time zone,
+    datecreated timestamp without time zone,
+    centername text,
+    level text,
+    filetype text,
+    fractiontype text,
+    ispublic text,
+    md5checksum text,
+    pgrruuid character(36),
+    refgenomename text,
+    tssabbr text,
+    tssname text,
+    aliquotbarcode text,
+    aliquotuuid character(36),
+    origuuid character(36),
+    analytecode text,
+    centercode text,
+    diseaseabbr text,
+    patientbarcode text,
+    patientuuid character(36),
+    project text,
+    samplebarcode text,
+    sampletypecode text,
+    sampleuuid character(36),
+    samplevial text,
+    tcgaarchivepath text,
+    tcgafilename text,
+    analysisplatform text,
+    analysistype text,
+    analytedesc text,
+    barcode text,
+    fileextension text,
+    filesizeinbytes text,
+    pgrrfilename text,
+    pgrrpath text,
+    refgenomeurl text,
+    sampletypedesc text,
+    version text,
+    algorithmname text,
+    algorithmversion text,
+    reasonarchived text,
+    sequencesource text
+);
+
+
+ALTER TABLE pgrr_meta OWNER TO <your_role>;
+
+--
+-- Name: protocol; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE protocol (
+    uuid character(36),
+    analysistype text,
+    analytetype text,
+    center text,
+    disease text,
+    format text,
+    level text,
+    numberoffields text,
+    recordtype text,
+    requesttime timestamp without time zone,
+    sampletype text,
+    snapshotbydate timestamp without time zone,
+    tissuesourcesite text,
+    email text,
+    platform text,
+    referencegenome text
+);
+
+
+ALTER TABLE protocol OWNER TO <your_role>;
+
+--
+-- Name: sampletype_links; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE sampletype_links (
+    uuid character(36),
+    definition text,
+    shortcode text,
+    code text
+);
+
+
+ALTER TABLE sampletype_links OWNER TO <your_role>;
+
+--
+-- Name: subscription; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE subscription (
+    uuid character(36),
+    email text,
+    pair text
+);
+
+
+ALTER TABLE subscription OWNER TO <your_role>;
+
+--
+-- Name: tcga_archive; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE tcga_archive (
+    fullarchname text NOT NULL,
+    namenocenter text,
+    centerid text,
+    experimentid text,
+    startdownload timestamp without time zone,
+    finishdownload timestamp without time zone,
+    diseaseabbr text
+);
+
+
+ALTER TABLE tcga_archive OWNER TO <your_role>;
+
+--
+-- Name: tcga_bc_uuid; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE tcga_bc_uuid (
+    tcga_uuid text NOT NULL,
+    tcga_barcode text
+);
+
+
+ALTER TABLE tcga_bc_uuid OWNER TO <your_role>;
+
+--
+-- Name: tcga_file; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE tcga_file (
+    tcgafilename text NOT NULL,
+    fullarchname text NOT NULL,
+    startdownload timestamp without time zone,
+    finishdownload timestamp without time zone
+);
+
+
+ALTER TABLE tcga_file OWNER TO <your_role>;
+
+--
+-- Name: test; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE test (
+    literal_col text,
+    datetime_col timestamp without time zone,
+    uuid_col uuid,
+    my_uuid_col character varying(32),
+    my_uuid_col32 character(32)
+);
+
+
+ALTER TABLE test OWNER TO <your_role>;
+
+--
+-- Name: tss_links; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE tss_links (
+    uuid character(36),
+    code text,
+    bcr text,
+    sourcesite text,
+    studyname text
+);
+
+
+ALTER TABLE tss_links OWNER TO <your_role>;
+
+--
+-- Name: tss_synonyms; Type: TABLE; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE TABLE tss_synonyms (
+    uuid character(36),
+    tssabbr text,
+    tssname text,
+    tssnameprimary text
+);
+
+
+ALTER TABLE tss_synonyms OWNER TO <your_role>;
+
+COPY tss_synonyms (uuid, tssabbr, tssname, tssnameprimary) FROM stdin;
+1225fb87-4f54-44c6-8a6f-ccc3ddb89ea5	DI	MD Anderson	MD Anderson
+17a72342-ff6d-4023-9f5f-42bfcb03dd21	KO	MD Anderson Cancer Center	MD Anderson
+1fd3e817-cdfc-4239-bc32-f053d9964796	CJ	MD Anderson Cancer Center	MD Anderson
+26a64aca-cc2b-412e-a06c-b2f5f1731015	IF	University of Texas MD Anderson Cancer Center	MD Anderson
+3a2ce407-ec8d-429c-961f-cdb86167ffd0	A2	Walter Reed	Walter Reed
+2b3eb534-3ff3-42f6-aed9-b6b470b86d28	R6	MD Anderson Cancer Center	MD Anderson
+3707dc3b-1d8f-4120-bb85-3bfa25a795cf	N9	MD Anderson	MD Anderson
+5292cd7c-70f3-45a5-abcf-e5d5c2203a29	R5	MD Anderson Cancer Center	MD Anderson
+66068c59-2dd3-46e5-b480-86506856f3b5	CV	MD Anderson Cancer Center	MD Anderson
+7ebeff8b-79ae-4a17-9c56-fcca2497a1d5	02	MD Anderson Cancer Center	MD Anderson
+7fb7d7e3-c362-4385-b0e3-9adca5b8f8e7	GM	MD Anderson	MD Anderson
+9096bc9f-e852-4a8f-a8fd-90d1b9b257ce	KK	MD Anderson Cancer Center	MD Anderson
+bc404f02-0381-42f9-93e5-7e12ed250f86	D3	MD Anderson	MD Anderson
+c490cb5e-a937-462d-83f3-1e016dd6b325	G2	MD Anderson	MD Anderson
+d7baf0e4-477c-4759-bf7c-36b1c290e868	P4	MD Anderson Cancer Center	MD Anderson
+e0ea42ed-3c8f-4542-bc8c-7315e225aac3	R8	MD Anderson	MD Anderson
+e5399dbb-25fd-4b47-b058-95805e9e88d3	EL	MD Anderson	MD Anderson
+f46146e7-9c32-4a46-a87d-5ccb30886118	10	MD Anderson Cancer Center	MD Anderson
+002a6f0b-f235-446c-aa8a-2f3cdf2f0329	JT	MD Anderson Cancer Center	MD Anderson
+0207178c-c843-4a39-a040-39410232545f	3H	MD Anderson Cancer Center	MD Anderson
+049c9d8c-f96d-45a4-b0f1-19bca4bd3890	11	MD Anderson Cancer Center	MD Anderson
+277102f9-50b4-450b-ba4a-200e9c323b75	IU	University of Texas MD Anderson Cancer Center	MD Anderson
+42f20b5b-41ce-4e9c-9420-099b164f10a6	SD	MD Anderson	MD Anderson
+5b4509d9-c23c-45fe-874e-ad69a02e8edb	OQ	MD Anderson	MD Anderson
+8499f56a-f783-487e-9fa2-5c717a6961c0	WC	MD Anderson	MD Anderson
+8638da26-54cb-43d2-a04c-1eea13a77e10	3G	MD Anderson Cancer Center	MD Anderson
+93ecdb87-c02f-4bd5-9233-899508d70b9d	MA	MD Anderson Cancer Center	MD Anderson
+95049e3f-2528-4b20-b686-223b391ad276	GP	MD Anderson	MD Anderson
+c8b2f871-135d-46f3-a13d-2a63741d8bb5	IT	University of Texas MD Anderson Cancer Center	MD Anderson
+0ef2ca82-040b-448f-8c7a-353cbcd6cab1	AP	MSKCC	MSKCC
+1141e240-3d6c-4d71-b940-62b7eb25ecca	BP	MSKCC	MSKCC
+26c12edb-1a1f-4038-91fa-772d1972ef57	HW	MSKCC	MSKCC
+29321e2f-9faa-4f4a-935c-16a85fdb0995	BQ	MSKCC	MSKCC
+2b916bf5-ebbf-491f-b2fe-5e97c90c8d38	KL	MSKCC	MSKCC
+46cb109b-bfb4-4bd6-863f-6f5e66b44802	39	MSKCC	MSKCC
+603206d1-f6d4-4fa0-bf49-3bfc0f3c45dd	MX	MSKCC	MSKCC
+633e1139-d162-4b1b-957e-54180e50b605	N5	MSKCC	MSKCC
+b21e9583-6629-4bb5-8452-8228b481c95e	CM	MSKCC	MSKCC
+b378a5e8-7c91-43d7-aa6d-49b13a3f0c2d	AO	MSKCC	MSKCC
+bdb976c8-dd42-48de-aa2b-f2aca3db1a41	DC	MSKCC	MSKCC
+0e84ce7a-b2b2-4c3d-9f38-ac736e615e0e	XM	MSKCC	MSKCC
+3eeff25e-b314-48d9-9bf7-154201e6e4c1	YV	MSKCC	MSKCC
+718a9df8-ef01-4970-85cf-2d1325e50c54	40	MSKCC	MSKCC
+7182c714-04ea-466d-87ff-a20be75ce1a6	72	NCH	NCH
+770f11d8-7555-42d6-80a6-23d2b5847911	AV	NCH	NCH
+09df32d7-a3df-4caf-83e1-e3ceb1103906	BM	UNC	UNC
+1f18d0c4-ab97-4991-9edb-bd78d1617c64	F2	UNC	UNC
+35085e20-468f-4d4e-9d71-671b623b33d6	BC	UNC	UNC
+37b7dfb8-262f-4b20-b0f0-8ad82eb50e0d	BA	UNC	UNC
+4f23baf9-d34e-4050-bfd1-a10a4d63d118	B8	UNC	UNC
+5b7faccd-8be1-47ef-969f-53072e9d94e8	AQ	UNC	UNC
+6624f09b-f863-4c55-8703-2a98e06aa831	EZ	UNC	UNC
+68177547-e513-4d8f-8243-2baa7aaf0c79	38	UNC	UNC
+9e27f6f5-e9d7-4a8e-a368-cf6703b79ad0	CU	UNC	UNC
+9ff6d7ed-dc00-4acb-876a-0eba544586bb	51	UNC	UNC
+bcca9ec3-153f-4733-8ac9-83ab3ee92510	B9	UNC	UNC
+ce41c777-0cdf-429d-8596-e99633401b1a	F1	UNC	UNC
+e6cc8aae-7f6d-4e48-b5b7-36965a0a2951	AY	UNC	UNC
+06418e82-12d3-49b6-8b0f-1a2015b9dac6	EY	University of North Carolina	University of North Carolina
+1969a8c3-193d-4835-ac35-c73e3801a1ee	N8	University of North Carolina	University of North Carolina
+3f7024e3-4333-4ba8-89f0-6fa536e53944	FR	University of North Carolina	University of North Carolina
+441000f7-d166-4cfa-9063-db816b54d635	DE	University of North Carolina	University of North Carolina
+4ae2b124-23bd-493e-9416-74347d0c0cae	M7	University of North Carolina	University of North Carolina
+4de18a62-0802-45cb-a66a-50dd7982ba1c	QT	University of North Carolina	University of North Carolina
+5e6c90e3-388e-4772-b619-331c97b83200	EX	University of North Carolina	University of North Carolina
+6a4be43a-723f-4627-a0b4-f08c40a0a9c3	HB	University of North Carolina	University of North Carolina
+73293598-23ca-495e-88b8-ef1f024d5773	OX	University of North Carolina	University of North Carolina
+ff94362c-a735-48cf-814a-ba3c1638389b	UW	University of North Carolina	University of North Carolina
+304bbbeb-7e42-4769-a291-bd679df2f9e9	W4	University of North Carolina	University of North Carolina
+d2367cb3-6137-41c2-8669-ba95654c8d49	ZH	University of North Carolina	University of North Carolina
+d41d089d-92de-424b-8ef6-9496e4e46437	OY	University of North Carolina	University of North Carolina
+019ce11a-6aa4-4065-b004-3aaa20d3299f	88	ABS - Blokhin	ABS - Blokhin
+116cf3d8-efdb-49de-9998-50e049eb6527	GY	ABS - Blokhin	ABS - Blokhin
+27a57e7e-3380-454d-b4d9-d1d62ea914a1	89	ABS - Blokhin	ABS - Blokhin
+29ad1dcc-aae3-4e92-a253-81841005e99a	GW	ABS - Blokhin	ABS - Blokhin
+31b50090-b46b-4887-ab6c-01fbc335fd07	LX	ABS - Blokhin	ABS - Blokhin
+3daa06e0-7cd6-418d-b7e3-7a563578340c	LZ	ABS - Blokhin	ABS - Blokhin
+3ea2186d-d134-4114-9e3c-2e0c1cd10d08	M1	ABS - Blokhin	ABS - Blokhin
+575d502e-9d8a-48e7-9b04-1039dd1cb11c	LV	ABS - Blokhin	ABS - Blokhin
+6210e574-6c15-4e71-ba23-4849f508c280	LU	ABS - Blokhin	ABS - Blokhin
+73b5bb26-cdbe-4f47-ac9e-69cf3eca3bf3	LY	ABS - Blokhin	ABS - Blokhin
+7901563b-dc75-43b9-a12b-532752086d69	M4	ABS - Blokhin	ABS - Blokhin
+8498ebde-2c1c-4d9b-ba45-167133204785	M3	ABS - Blokhin	ABS - Blokhin
+8ab9d0d8-94bf-49e5-9427-7a01b2728890	M2	ABS - Blokhin	ABS - Blokhin
+aa3b7bbe-0ac7-4e09-b517-6218353b9736	GX	ABS - Blokhin	ABS - Blokhin
+db47ef22-afac-4475-9134-2fb88b7a8668	GT	ABS - Blokhin	ABS - Blokhin
+f3ae3570-c291-4690-8d6a-b289ba1397cd	LW	ABS - Blokhin	ABS - Blokhin
+17eb2548-d6ed-4c53-8b7c-2be98b98c868	IE	ABS - IUPUI	ABS - IUPUI
+362e1867-d400-4ebd-bc76-fbf97ba0940d	GK	ABS - IUPUI	ABS - IUPUI
+412575fb-4504-4d07-aa0d-a2ceb3121a97	90	ABS - IUPUI	ABS - IUPUI
+636877b8-cfe6-4941-976c-a3f6a23495de	SA	ABS - IUPUI	ABS - IUPUI
+698e2267-46ea-4502-b34a-72dca8f6afd9	IP	ABS - IUPUI	ABS - IUPUI
+6c80f3e9-c822-4984-9e1c-24ad23c96687	H7	ABS - IUPUI	ABS - IUPUI
+70d61a6d-ac56-441b-a968-dcbd8bebc635	91	ABS - IUPUI	ABS - IUPUI
+7764c09f-973d-4caf-a738-f9604c03ed5b	GI	ABS - IUPUI	ABS - IUPUI
+7f1f0ac5-1d37-464b-b7ad-1661d4d979cb	H9	ABS - IUPUI	ABS - IUPUI
+92d9320f-9437-4694-920a-1f1864542475	GL	ABS - IUPUI	ABS - IUPUI
+9b896754-2d1a-4b52-a1df-a567371ec69e	S8	ABS - IUPUI	ABS - IUPUI
+a9b82f49-4c21-4ad6-8439-3a0e0aec31d1	GE	ABS - IUPUI	ABS - IUPUI
+af2ea0de-db35-43de-bc98-18c6ca60a7f7	GJ	ABS - IUPUI	ABS - IUPUI
+b94ea17e-eaff-40d3-aa6c-6fd0a01f5194	GD	ABS - IUPUI	ABS - IUPUI
+bfb993c4-2ca6-4f9e-a7db-84d048f3d033	H8	ABS - IUPUI	ABS - IUPUI
+e5a9572f-adc4-41af-bc1f-7c402c6e217e	GF	ABS - IUPUI	ABS - IUPUI
+1f506e35-3776-4d43-8364-64f244babb91	2X	ABS IUPUI	ABS - IUPUI
+226f9da2-6e9c-4e2a-b5c9-c7cd53faa477	ID	ABS - IUPUI	ABS - IUPUI
+4cd61ac7-b346-4f09-bd11-6f9b3f5f7896	GG	ABS - IUPUI	ABS - IUPUI
+6f96df27-780c-46f6-9a05-68144b5bdfd5	X7	ABS IUPUI	ABS - IUPUI
+93124eaa-42cf-433e-b1b5-51b67425b823	VE	ABS IUPUI	ABS - IUPUI
+b9ecbbf7-99d1-4775-a375-08aabec10c69	H3	ABS - IUPUI	ABS - IUPUI
+c59734c9-b564-4e06-a582-9a6f72683db8	GH	ABS - IUPUI	ABS - IUPUI
+00ec653d-e3bd-423b-8dc4-ecf93dea353a	J2	ABS - Lahey Clinic	ABS - Lahey Clinic
+4267c4d7-18af-4120-9ddb-cb0ff470f624	IZ	ABS - Lahey Clinic	ABS - Lahey Clinic
+89d3113d-0f38-4254-96b8-b01acd24b3b4	K6	ABS - Lahey Clinic	ABS - Lahey Clinic
+8eab514c-fb11-41b7-a215-704638c2161a	K4	ABS - Lahey Clinic	ABS - Lahey Clinic
+9dc9c3c4-9c01-4378-a99f-20ba7965e28c	J1	ABS - Lahey Clinic	ABS - Lahey Clinic
+ac110fc0-bc14-4797-aa5f-1f3cbe436c06	K7	ABS - Lahey Clinic	ABS - Lahey Clinic
+f977b031-a989-43ce-9a60-663cc906b7c6	J4	ABS - Lahey Clinic	ABS - Lahey Clinic
+fedcaaad-591a-4a1f-aab7-fb8a97af1beb	PZ	ABS - Lahey Clinic	ABS - Lahey Clinic
+1f3d1a9a-49c3-4dd4-9b48-2d38498af5b9	K3	ABS - Lahey Clinic	ABS - Lahey Clinic
+d2a671ab-98f7-4db9-a329-a432bdc364f7	C8	ILSBio	ILSbio
+3b1b9846-f476-4a73-9ece-0104788efd65	J5	ABS - Lahey Clinic	ABS - Lahey Clinic
+54779ba3-52a0-419e-9058-787699c98997	K8	ABS - Lahey Clinic	ABS - Lahey Clinic
+57cd3c12-85c5-40c8-bb65-cf4e6749f9d8	IX	ABS - Lahey Clinic	ABS - Lahey Clinic
+72e45953-b142-4f4c-be7b-70c36596b413	K9	ABS - Lahey Clinic	ABS - Lahey Clinic
+9634a0b2-c6c7-4cd1-bc4a-758f8fd53fb0	KA	ABS - Lahey Clinic	ABS - Lahey Clinic
+a0668a8b-0e68-4bc3-875b-f933c2a5115a	K2	ABS - Lahey Clinic	ABS - Lahey Clinic
+be180cd4-fc26-4868-82c5-5ef701a3dcfa	IY	ABS - Lahey Clinic	ABS - Lahey Clinic
+c8805c6e-62c8-4352-8202-a7a87ea61c1f	K5	ABS - Lahey Clinic	ABS - Lahey Clinic
+d84d515a-1e6b-420e-b72d-3e50f689f007	J3	ABS - Lahey Clinic	ABS - Lahey Clinic
+459f0ef9-0cf3-4933-85df-2141460a0d97	JL	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+0998d351-cb91-464f-96a7-a00c8ee0cb32	JR	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+0b3ae55c-8768-4331-bca6-dcdbeea178e1	JH	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+0ec08124-fd30-4d77-aee1-aef1293dbfdc	JN	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+0ecc253c-ef76-44f6-aa72-c1cf5eb2b42e	JG	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+1d87bc25-8ba3-45ac-b2cc-09b676e7639b	JQ	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+2e872140-435c-4d21-8996-bb617a877490	JO	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+5611ada8-5e63-4b7c-9b5f-6abaea6cba6f	JS	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+685681af-a292-45e6-a31b-0a52914aa979	JE	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+6da37073-c103-4836-b013-b7787def2ae5	JB	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+79ea1d30-5644-4310-a9b3-d6f3cb70d9dd	JJ	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+7fb21200-e31f-465a-9a52-56e9925ab486	JA	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+923110c4-43ff-44f9-aea4-73be0e64eec8	JK	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+926a910c-f390-4de1-804e-53349eb8f431	JD	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+c01bd96a-a5f0-4c9c-bd26-dbbe40bf860e	JM	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+e4d19094-7313-4a54-9415-600cf0d18d72	JF	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+f26286de-a63f-43d8-9aec-36e487a0d6bb	JC	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+f8f7526f-fdba-48ea-85c0-86414ad506dc	JP	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+fb1e7682-17ac-404b-8d07-c913ad66ead9	JI	ABS - Research Metrics Pakistan	ABS - Research Metrics Pakistan
+1cda9924-ff84-4203-b512-91374fcff274	SJ	Albert Einstein Medical Center	Albert Einstein Medical Center
+a1e38e31-df75-4f31-9fa5-75f2a443148a	S3	Albert Einstein Medical Center	Albert Einstein Medical Center
+07e9baf9-475d-4572-9bbd-e3c0040b1585	XB	Albert Einstein Medical Center	Albert Einstein Medical Center
+1ff683f6-fcb1-45c4-af4e-85dcdda7c7b1	VZ	Albert Einstein Medical Center	Albert Einstein Medical Center
+b9dac593-723f-4705-bb72-4cfce09ffb4c	YW	Albert Einstein Medical Center	Albert Einstein Medical Center
+ce25cd37-5f7f-4b59-96bb-c2bafda3bdd4	XC	Albert Einstein Medical Center	Albert Einstein Medical Center
+e5f078de-ad14-4155-846c-fce04445239a	S2	Albert Einstein Medical Center	Albert Einstein Medical Center
+ebdb7bdb-0933-48b8-bf22-1104e98d84dc	3L	Albert Einstein Medical Center	Albert Einstein Medical Center
+465d4f06-9746-4547-90cd-219575640124	IB	Alberta Health Services	Alberta Health Services
+802001f6-70be-482e-b154-7b4aee543658	G3	Alberta Health Services	Alberta Health Services
+66499d96-e810-4467-a68b-1569a36ac6cd	3X	Alberta Health Services	Alberta Health Services
+09f98adf-3def-434a-b7b1-3f318776eaeb	LP	ILSBIO	ILSbio
+802182b5-7fe5-4fe5-9555-8ecc3a457442	HA	Alberta Health Services	Alberta Health Services
+72b93b8a-bec9-4673-bc10-205834b79d6f	VA	Alliance	Alliance
+25f6869a-8368-49f0-97cc-50acca871eea	UT	Asbestos Diseases Research Institute	Asbestos Diseases Research Institute
+186cf566-1de8-47ab-8d87-9d0cf9c3905c	FB	Asterand	Asterand
+1cec9d4d-9c6c-473f-a55e-5fb95105c9b3	IG	Asterand	Asterand
+1ff39d53-ffed-433d-b345-16a85ab646c4	UE	Asterand	Asterand
+3694ab6f-56c0-4fb9-a2ab-1d85765f5c63	ED	Asterand	Asterand
+4b9dddee-c489-45b6-8011-f78e1b76264c	F9	Asterand	Asterand
+587544f4-1ed7-4afd-ac72-0ab761ac786c	EA	Asterand	Asterand
+597a9276-4b33-46db-9ec4-8cbc0f44f8bf	86	Asterand	Asterand
+67a50171-0fac-4731-a738-494d7b264dc2	E9	Asterand	Asterand
+6efca3dd-3d47-4174-b54c-e49da48831d5	E8	Asterand	Asterand
+92420d1d-65b3-4406-8f59-78e92a8e44f9	EB	Asterand	Asterand
+9ed90df8-f9e3-49e2-a041-797ada4a9496	FC	Asterand	Asterand
+aca880a8-c1a4-4459-bd81-caf2013ab25a	FA	Asterand	Asterand
+ad220d3b-c45d-4612-a23d-73fe80590418	F5	Asterand	Asterand
+b32c7784-bf1c-4156-afbf-8a8a66776caa	EC	Asterand	Asterand
+bdcd2ac0-0a7e-442b-ab6f-1458425a9305	F4	Asterand	Asterand
+c92051ed-af9e-4574-861b-3f6773f2a27a	85	Asterand	Asterand
+d04038a9-3991-4a86-be7f-7b4579e4e648	E7	Asterand	Asterand
+e0ebd354-284c-4300-9b9a-934048f1c709	F7	Asterand	Asterand
+fcc9dc0a-2587-4ab4-8f4a-c5de76a8dff2	BR	Asterand	Asterand
+fd5dced6-0340-4e58-8c1c-9c1458120187	F6	Asterand	Asterand
+966929e0-ce51-44a6-8d47-7900af0b3ae4	G1	Asterand	Asterand
+aa56ebc5-0a5c-4caa-8e51-2c5625b0f01b	84	Asterand	Asterand
+cb4e7a72-921f-410a-b616-f3249985cd4d	F8	Asterand	Asterand
+68fe68f4-b21f-46f2-b3c0-c23b07bdd0b8	GZ	BC Cancer Agency	BC Cancer Agency
+b555ee00-02e1-4898-92f9-7388ab1c927a	KP	British Columbia Cancer Agency	BC Cancer Agency
+cb121419-3a89-4d85-83d9-b21fdfd1f6ff	36	BC Cancer Agency	BC Cancer Agency
+103c92ea-3b4d-4cbe-9e75-31a92ac7d7b0	FJ	BLN - Baylor	BLN - Baylor
+187f1e01-aee7-4c54-834f-96e4bbf370fc	MK	BLN - Baylor	BLN - Baylor
+4342c01b-b2e0-49c7-9465-9f2f20f5d726	MM	BLN - Baylor	BLN - Baylor
+52b794e8-e031-49d2-bffe-ccf0aa122993	QF	BLN - Baylor	BLN - Baylor
+59620913-b44d-4bc4-9a29-24dd631079ee	MJ	BLN - Baylor	BLN - Baylor
+7636fbe3-cffd-4434-8551-8a3169c03d77	MH	BLN - Baylor	BLN - Baylor
+7c03c362-d5be-4e13-b345-81d2c3ab7607	QG	BLN - Baylor	BLN - Baylor
+7d3468f9-e510-41f9-bbc1-e1fb07eb4dac	JV	BLN - Baylor	BLN - Baylor
+95b3d732-8c2e-4b5c-88f1-8b605a97a8a8	JW	BLN - Baylor	BLN - Baylor
+f2f6a0be-15f1-48c6-85a1-8a0100dc0f34	MN	BLN - Baylor	BLN - Baylor
+fdb1f4a2-3b37-415c-92a8-fc4b71800fc1	MI	BLN - Baylor	BLN - Baylor
+6ce2afcf-5288-45b1-a1d3-9d14e50e1d63	XH	BLN Baylor	BLN - Baylor
+864253f4-51b0-48b5-93a2-1b4d318e1c3d	OV	BLN Baylor	BLN - Baylor
+a4c716ba-c526-404c-aca5-86eb1d3dd4ab	MG	BLN - Baylor	BLN - Baylor
+a7aeb1e4-3fe1-40e1-9c7c-97c5f914730e	ML	BLN - Baylor	BLN - Baylor
+c8ebe633-7cbd-455c-924d-a05edd4fb315	SN	BLN - Baylor	BLN - Baylor
+cb61974e-a39a-446b-bf05-6091fc9f85a3	JU	BLN - Baylor	BLN - Baylor
+dfde2cab-4821-4ad3-ae4d-3d3bbf4d2847	SM	BLN - Baylor	BLN - Baylor
+e1c1c857-a26a-465c-84ce-e6c738ba3c31	RH	BLN - Baylor	BLN - Baylor
+1af2476c-2a73-4bf6-a674-7e43efd3b527	GV	BLN - Cleveland Clinic	BLN - Cleveland Clinic
+13613945-9958-434d-8e6f-7762959ad767	GU	BLN - UT Southwestern Medical Center at Dallas	BLN - UT Southwestern Medical Center at Dallas
+2857fd99-557b-4d4f-a0ad-9d88973b6500	FD	BLN - University Of Chicago	BLN - University Of Chicago
+6887db85-6bac-45d6-9fdf-d7bfedb6cad9	FT	BLN - University of Miami	BLN - University of Miami
+1b3f0fde-495f-4488-9ee8-cf0921658468	XG	BLN UT Southwestern Medical Center at Dallas	BLN UT Southwestern Medical Center at Dallas
+260265c0-981a-4244-bc6a-6edef02219f6	VR	Barretos Cancer Hospital	Barretos Cancer Hospital
+27ffab51-99f7-4c61-b9e9-607edc5e576f	VS	Barretos Cancer Hospital	Barretos Cancer Hospital
+4a7b3c3c-f8c5-49f2-a274-a6d1f3baa065	VQ	Barretos Cancer Hospital	Barretos Cancer Hospital
+93bb0f40-b537-4c8b-b123-dd1e47cc99e3	UF	Barretos Cancer Hospital	Barretos Cancer Hospital
+07d4ccf0-9440-4911-8ae1-a7092e742dc3	YR	Barretos Cancer Hospital	Barretos Cancer Hospital
+365ceffd-88ef-4cac-af2e-88e5766fd271	4Z	Barretos Cancer Hospital	Barretos Cancer Hospital
+3bf480ab-3cdd-44c9-bedd-04ec33c473d9	YU	Barretos Cancer Hospital	Barretos Cancer Hospital
+94d8cb56-d428-4fdd-9bae-178db533aa4e	YT	Barretos Cancer Hospital	Barretos Cancer Hospital
+af8402e6-9684-41ac-a380-a826f9e9bb23	YS	Barretos Cancer Hospital	Barretos Cancer Hospital
+401e7800-2aab-4d23-a4e3-79a25ab548d2	KG	Baylor Network	Baylor Network
+db00cfc3-5dd4-44c6-8ccd-ca1f29d51af3	SB	Baylor College of Medicine	Baylor Network
+22fa64e1-5e3e-42a0-9800-1746eebafd5f	QY	Biomatrix	Biomatrix
+510734ba-aec3-406c-bdca-1fd4fbdf10b4	QX	Biomatrix	Biomatrix
+73188f58-04ad-4be0-aae0-1b393649c44f	UP	Boston Medical Center	Boston Medical Center
+37b6d7d8-d909-4d49-b2e1-3df53e2faccd	3K	Boston Medical Center	Boston Medical Center
+5449d399-22d2-4752-906a-400628a57af0	UL	Boston Medical Center	Boston Medical Center
+64da1b29-70cb-4094-80cc-6804e46c8cb5	UN	Boston Medical Center	Boston Medical Center
+767100c3-333f-4b78-8a14-64cce678187e	UK	Boston Medical Center	Boston Medical Center
+81ef6c5f-e8ff-4158-9090-5943b6880d7a	UQ	Boston Medical Center	Boston Medical Center
+b70b80d2-54d5-4c84-bb23-e56d1f859f2e	UR	Boston Medical Center	Boston Medical Center
+c0752649-605a-434d-8c9f-88c5968666c3	UH	Boston Medical Center	Boston Medical Center
+c2920117-5d30-4caf-a9ac-7530ee8332b5	UJ	Boston Medical Center	Boston Medical Center
+f40784c1-5880-4df1-93c3-58c8448572df	UM	Boston Medical Center	Boston Medical Center
+0d54b434-5eb2-4d23-aa7e-3a22d7f0c10f	CE	ILSBio	ILSbio
+f6932ab3-3440-4646-a76f-d3bd8787b2fb	UG	Boston Medical Center	Boston Medical Center
+fc1c821d-a78f-4c47-8e85-8cdf02c3609d	SE	Boston Medical Center	Boston Medical Center
+5ae45af9-6499-4da6-8701-78dee012c5f3	ZN	Brigham and Women's Hospital Division of Thoracic Surgery	Brigham and Women's Hospital
+a26fab9a-01aa-46ac-948a-8faf62815813	OS	Brigham and Women's Hospital	Brigham and Women's Hospital
+adad5722-0a06-4112-85cf-3263239e65b1	WK	Brigham and Women's Hospital	Brigham and Women's Hospital
+64676f63-475c-443c-a972-d7b1f9894ece	EV	CHI-Penrose Colorado	CHI-Penrose Colorado
+8640ba08-e4af-421a-a28c-04826f5c3813	R3	CHI-Penrose Colorado	CHI-Penrose Colorado
+a7a20aba-346a-4040-9bb0-a1563c403ea1	83	CHI-Penrose Colorado	CHI-Penrose Colorado
+d033d018-bbf4-4b78-898a-f794e7425a3f	EU	CHI-Penrose Colorado	CHI-Penrose Colorado
+d0fb521b-f9ce-4913-9cdb-ee0f95f16899	81	CHI-Penrose Colorado	CHI-Penrose Colorado
+dff9d303-b08d-4d8c-ae9b-c09b8de40593	R2	CHI-Penrose Colorado	CHI-Penrose Colorado
+018bd055-4cac-4507-bacc-2a2708ac7751	82	CHI-Penrose Colorado	CHI-Penrose Colorado
+204d5e4d-504e-4fac-8246-9d252e437f90	QZ	CHI-Penrose Colorado	CHI-Penrose Colorado
+ba60e605-7e0c-4d8e-8108-8de0d2c9881a	R1	CHI-Penrose Colorado	CHI-Penrose Colorado
+d4768dc7-eb56-42f8-85ce-28d041f541df	FH	CHI-Penrose Colorado	CHI-Penrose Colorado
+838d0cdf-1f6c-4f3e-91d8-3274b0fc5f1e	NM	Cambridge BioSource	Cambridge BioSource
+23db28ab-8041-414b-ac39-43459507bff6	ZA	Candler	Candler
+3e588d93-6f09-462d-a14e-8efab65b2361	NH	Candler	Candler
+966b9a2d-e5a1-45c3-99ef-a7ccf138be6e	LA	Candler	Candler
+a4ebbc2c-cf9e-497d-b3df-c503e024456f	QS	Candler	Candler
+c4e2a1d8-5d56-4b8a-b90e-d61d0d3a0368	L9	Candler	Candler
+d6c76a16-4b25-4286-b244-965b99f73911	RA	Candler	Candler
+df624cf6-041f-4558-9e02-76db878471f7	LB	Candler	Candler
+ee72d0dc-3845-4108-9d50-239b55e884b8	LL	Candler	Candler
+0923df6d-398f-4a2b-add4-abe5d678605a	R9	Candler	Candler
+ecc36c45-16f3-4969-abbb-215e56dfee5b	P2	Candler	Candler
+f51eafd7-0a32-4c20-8274-da6750b07861	LM	Candler	Candler
+169c3044-c23d-40a4-b54f-dec5acc855d8	UV	Capital Biosciences	Capital Biosciences
+4b32c813-d2cf-4b0f-9701-3e3c2e448ffa	XV	Capital Biosciences	Capital Biosciences
+f55cd190-6af4-465b-94e8-979517ceffbc	XW	Capital Biosciences	Capital Biosciences
+02dd19fd-b9ce-42bc-a6d1-880983d4a806	3J	Carle Cancer Center	Carle Cancer Center
+32b60b26-0ecd-4334-aba8-927abf54948c	FG	Case Western	Case Western
+7791c7e0-7875-4e20-80f9-c80c7959a4ee	19	Case Western	Case Western
+854475f7-0d26-4d58-9835-ed316158bc48	HT	Case Western - St Joes	Case Western - St Joes
+1581d989-93d8-453a-8236-37cc1e8116b2	ND	Cedars Sinai	Cedars Sinai
+21715b30-af0a-4c0d-8056-972c3641ed4e	28	Cedars Sinai	Cedars Sinai
+ce6f6582-3d5d-45f2-b676-6f76982390da	IW	Cedars Sinai	Cedars Sinai
+e23ae032-5130-4882-b51c-0eb9e5d99ed1	23	Cedars Sinai	Cedars Sinai
+e8a4ff06-b14d-4b31-a14e-3a1c58ca35af	DS	Cedars Sinai	Cedars Sinai
+fbbd0739-125e-4d0a-8fa5-b9aed5582016	A5	Cedars Sinai	Cedars Sinai
+d849ad7e-cd7c-4ed8-9557-ec69eb4de51c	PS	Cedars Sinai	Cedars Sinai
+131417fa-2871-4216-b677-cca6c0cad78a	A7	Christiana Healthcare	Christiana Healthcare
+158fe00e-950c-4916-ae75-cfa5030bc22c	L7	Christiana Care	Christiana Healthcare
+1adbf6e0-feb6-46e4-b8ed-66e0dd5ae084	A6	Christiana Healthcare	Christiana Healthcare
+3462ee10-e280-48a5-af59-96b5f65748cd	H2	Christiana Healthcare	Christiana Healthcare
+389167b6-cbe3-4de4-9598-5d9ed7ba0b93	EQ	Christiana Healthcare	Christiana Healthcare
+43686fe8-d6d6-45a4-ace8-03b5c46e80ac	42	Christiana Healthcare	Christiana Healthcare
+72e84ca6-2473-4cb1-bae1-70be2d474f3f	IK	Christiana Healthcare	Christiana Healthcare
+80725d64-9781-4fcb-8870-b979162ec2bf	KF	Christiana Healthcare	Christiana Healthcare
+8945c76b-bae2-4080-91d1-38abe7a93212	BK	Christiana Healthcare	Christiana Healthcare
+8a54c5b4-babb-46ea-9ab3-3dfe0bbfece1	AF	Christiana Healthcare	Christiana Healthcare
+94611d00-19c1-44f9-bde2-55ec58dc843e	B2	Christiana Healthcare	Christiana Healthcare
+9ae6afdb-813a-49da-b1c2-ecfbbbb9cbb5	43	Christiana Healthcare	Christiana Healthcare
+a1bc43b1-864b-47de-aeef-a28413707e54	HM	Christiana Healthcare	Christiana Healthcare
+bc647f3c-d07b-46d2-af5a-0e5649beacb9	41	Christiana Healthcare	Christiana Healthcare
+da5c1aa2-8a91-4d96-b8e9-a4c1593c8a08	B3	Christiana Healthcare	Christiana Healthcare
+dcb1c7dc-ee02-4015-8702-9b86cd66bb8f	44	Christiana Healthcare	Christiana Healthcare
+de112667-b5df-4b24-8bb3-a5e62b3af680	EP	Christiana Healthcare	Christiana Healthcare
+fa9b0176-f933-467a-be60-8ec3c321fab6	H6	Christiana Healthcare	Christiana Healthcare
+fff56fe5-f95a-4624-a6ef-5c687cef5b2e	BL	Christiana Healthcare	Christiana Healthcare
+08461202-1464-4792-886d-a5d25cb3dffd	IJ	Christiana Healthcare	Christiana Healthcare
+f1e514c7-1612-4c3b-b714-f27ff700b394	NL	Christiana Healthcare	Christiana Healthcare
+f1e655f1-b2a9-4c57-a115-40a61380f6c3	IA	Cleveland Clinic	Cleveland Clinic
+f5a6132e-b7e3-4528-a89d-a1c90ec60f61	RT	Cleveland Clinic Foundation	Cleveland Clinic
+fdb28aa4-5958-43d1-b6a1-b38f81a6e466	SG	Cleveland Clinic Foundation	Cleveland Clinic
+1897c38e-6c5c-433b-8fde-ce7a7767a8ce	V3	Cleveland Clinic Foundation	Cleveland Clinic
+53ce811b-3605-4f28-9751-f237e19fdf24	V2	Cleveland Clinic Foundation	Cleveland Clinic
+55cfc7b4-fdbd-4dc4-882e-7568c0b943f7	SF	Cleveland Clinic Foundation	Cleveland Clinic
+85b08e11-89fd-4f61-8fe7-4e1bf97a0802	5G	Cleveland Clinic Foundation	Cleveland Clinic
+cec0a7c9-908b-4854-92c9-a60a1fdb02ba	X3	Cleveland Clinic Foundation	Cleveland Clinic
+2b985438-7786-4d27-99b1-9173ec71ca8c	3C	Columbia University	Columbia University
+7a4841f1-ecb9-46ec-8407-934b9293b172	3F	Columbia University	Columbia University
+7fa9a4ec-7ecf-4568-a934-5ed06aab540f	3D	Columbia University	Columbia University
+9263a71e-b8df-4955-a86e-64eedf63edd4	6C	Columbia University	Columbia University
+c636b903-cd82-498e-9086-cf8bb99d8f2e	3E	Columbia University	Columbia University
+38b0744c-0c75-4f06-9925-71155d7fa89a	KC	Cornell Medical College	Cornell Medical College
+d9410bbb-18e2-403c-bbec-1e1cb4518233	KQ	Cornell Medical College	Cornell Medical College
+24f7c13e-960f-49cc-8d8f-89780925db65	EF	Cureline	Cureline
+3859f9d7-e34e-4041-b25c-8c7fdf823e5f	P5	Cureline	Cureline
+4eb885fb-7618-4c0c-ab6e-01d5c83fb510	AW	Cureline	Cureline
+56a72377-ccd0-4ab5-9675-daafc78bfe9e	35	Cureline	Cureline
+6011eb7c-1db6-4c40-b048-7c0a814acfc2	AM	Cureline	Cureline
+6adf6b13-21d0-4bd6-b2cd-68e2742255c5	B4	Cureline	Cureline
+7e691f3f-a947-49d3-96f0-15b071203f39	37	Cureline	Cureline
+85a278bc-491d-4d16-8689-6f901646b521	B7	Cureline	Cureline
+9a6d88a0-41f1-4300-9e1f-b16012d3b9ca	BF	Cureline	Cureline
+e0aeaf93-65af-4005-88ef-b57f83d3c156	AN	Cureline	Cureline
+fcf40e47-2281-4a76-8074-568c263460f5	Z6	Cureline	Cureline
+28c55217-cc66-4a3f-a357-b658333890fa	Z4	Cureline	Cureline
+46d729f9-ad84-4743-806a-9d91fdad7cb2	5J	Cureline	Cureline
+53d44f2b-aa1c-4999-8404-9da82fe7f353	BE	Curleline	Cureline
+6a254e38-a091-4b52-b6c3-d7be8cafd517	Z5	Cureline	Cureline
+d811c7a1-e85e-483d-aa42-0bd8815538e7	5C	Cureline	Cureline
+06b438dd-8a5f-4140-8abc-ed261f455041	29	Duke	Duke University
+1cf3bf82-48dc-487c-9fde-85e945287220	V5	Duke University	Duke University
+7d591f57-ee32-44dd-823d-20510f095048	12	Duke	Duke University
+84117e95-ade9-49cb-8f88-4dee234e6356	E1	Duke	Duke University
+afd6893c-50d1-41eb-936c-1e9d1616650c	NA	Duke University	Duke University
+d0c4f779-9c83-4bac-826f-bccffe375636	B5	Duke	Duke University
+f6f071c4-c6b1-46a1-bad8-c69a2762cc0f	B6	Duke	Duke University
+2d274423-ada2-429b-a37a-0f535390abe8	4Q	Duke University	Duke University
+33472729-aa65-44e7-ab70-36d9642b591f	4T	Duke University	Duke University
+4eecbc3e-5c04-465a-98c7-ba422ed3094c	5F	Duke University	Duke University
+6dae5123-50d9-49c1-83a3-c7d3aa12a339	V6	Duke University	Duke University
+8113f596-0978-4296-8b3e-ac2caf4472cb	4S	Duke University	Duke University
+cb7909f1-dbcf-4152-973b-4f76887ad81e	4P	Duke University	Duke University
+f2c3279b-2e7f-48a8-8392-85e16a25cef6	4R	Duke University	Duke University
+0fe752ec-20c6-456c-8306-1d7e6ed06b52	QC	Emory University	Emory University
+4bf6a9a9-8f83-49c5-bac8-14026f35e9fc	14	Emory University	Emory University
+5cb820bc-0fd9-4a23-a4fd-a138fab9d239	QB	Emory University	Emory University
+6101c9d2-d19d-4c31-ab25-cfa9d188d969	RB	Emory University	Emory University
+6ad29499-0573-4f58-81fc-8eb2ca440d01	QK	Emory University - Winship Cancer Inst.	Emory University
+80c7cd00-bcfb-40a0-b80e-86926a7e1b9d	QA	Emory University	Emory University
+9ab7dbd3-4db4-4d59-abb0-c66f56f9d37b	Q9	Emory University	Emory University
+04f946e5-9844-48a6-81d7-23d696593abd	YX	Emory University	Emory University
+0e0baee2-0373-4e56-adad-dbe461db3cde	Q4	Emory University	Emory University
+1f1b7f95-2c69-43ea-9a75-46d4804f7221	Q8	Emory University	Emory University
+46b450f6-81fe-4cb1-92f4-54a2fc3a4163	QE	Emory University	Emory University
+4b5db401-b4b8-4d9a-8cb5-f340b05df124	Q6	Emory University	Emory University
+61e6c4de-6f6f-4dd7-9791-a8197903c787	QD	Emory University	Emory University
+a3faa0f1-455b-4fcf-9adb-09aa03545972	VY	Emory University	Emory University
+aea30c4e-c9b6-4f64-9e88-e10f5299e240	3T	Emory University	Emory University
+ebd10766-9849-435b-a1a8-33b936de6c2d	Q5	Emory University	Emory University
+eda47a5a-fdbc-4028-bd2a-567701ebcfeb	WD	Emory University	Emory University
+f5593f00-f058-43fa-a2b5-1bc6d68169a1	Q7	Emory University	Emory University
+c4397b1b-bc48-44a2-bd10-f150addaf163	WB	Erasmus MC	Erasmus MC
+110a7a62-393c-4bf7-a290-cf1fd84cb879	2H	Erasmus MC	Erasmus MC
+7623550a-26ff-497e-b9d3-7e975ecd6955	2G	Erasmus MC	Erasmus MC
+ed9ffba9-b31a-4c99-96bf-bfe905f54f45	2F	Erasmus MC	Erasmus MC
+da3a198f-6ebe-4658-a9fe-32fed28acf89	FS	Essen	Essen
+bdd1d98a-907f-4fe5-b231-a720fd8af831	27	Milan - Italy, Fondazione IRCCS Instituto Neuroligico C. Besta	Fondazione-Besta
+faf2d261-fc72-432f-afc3-7a9d832ecb0c	QH	Fondazione-Besta	Fondazione-Besta
+247ce23c-0704-4314-99ce-d440b892f8b1	PC	Fox Chase	Fox Chase
+268b883f-072d-46fa-a337-8b4ffc20c4c6	PE	Fox Chase	Fox Chase
+2852c38d-8077-484e-bd93-47036f997cca	HJ	Fox Chase	Fox Chase
+4554ee83-c740-46cd-a20e-597c35b7c708	21	Fox Chase Cancer Center	Fox Chase
+56a1e910-0f4e-48dd-91ea-2c9df866174f	HI	Fox Chase	Fox Chase
+70f17005-b6e6-42c3-bde2-b2bad383cfc6	64	Fox Chase	Fox Chase
+8f688e98-dd6f-4b9e-8350-0aa4c6c504fb	PD	Fox Chase	Fox Chase
+95fe6876-4b57-4d6e-ad57-6e08bd8b8097	HL	Fox Chase	Fox Chase
+a92f8fc5-9034-4347-9299-c0735879890b	20	Fox Chase Cancer Center	Fox Chase
+f4ff93e9-015b-4758-83b0-d879aedf4697	AL	Fox Chase	Fox Chase
+fdee4a9d-731f-4740-bd88-c8cab22d4f16	AK	Fox Chase	Fox Chase
+1f17eb95-e7a3-450f-a738-26eec9a82069	HH	Fox Chase	Fox Chase
+998c7972-3a1c-4c42-bd84-a9376ff5a499	PF	Fox Chase	Fox Chase
+ab061832-6e8f-4c70-bd97-d2d1799317d7	HK	Fox Chase	Fox Chase
+f1c7d07b-9d8f-496c-b3df-5d5e2b2e4fab	GS	Fundacio Clinic per a la Recerca Biomedica	Fundacio Clinic per a la Recerca Biomedica
+c1481080-0aca-4a41-b382-5ec13e29f359	US	Garvan Institute of Medical Research	Garvan Institute of Medical Research
+058f7d2d-82f4-4710-b680-6199a67dda5c	W7	Garvan Institute of Medical Research	Garvan Institute of Medical Research
+26729007-5ee6-4d87-8098-e2e80b025a90	TK	Global BioClinical - Georgia	Global BioClinical - Georgia
+14b01347-0a99-4871-9ac6-5dbf6358ce18	TG	Global BioClinical - Georgia	Global BioClinical - Georgia
+2c2c7504-7f47-47d1-8571-6577a1c31e1f	TF	Global BioClinical - Georgia	Global BioClinical - Georgia
+658bec58-c129-4ab3-8213-8d6712adb7b9	TJ	Global BioClinical - Georgia	Global BioClinical - Georgia
+78427806-757b-4409-bafa-c0ccb6f08939	VB	Global BioClinical - Georgia	Global BioClinical - Georgia
+8c193ff7-f0bc-4c74-9d29-d881619699be	TE	Global BioClinical - Georgia	Global BioClinical - Georgia
+8e06b090-3f66-45b8-aa7d-2b0515d7307c	TL	Global BioClinical - Georgia	Global BioClinical - Georgia
+a180a358-6f87-4f63-aa0e-9b314dab172b	TD	Global BioClinical - Georgia	Global BioClinical - Georgia
+b8d6b370-568c-4c80-9a25-a5108ed5c568	TB	Global BioClinical - Georgia	Global BioClinical - Georgia
+c5f27ed4-439b-48d1-aca4-4a297720d554	TH	Global BioClinical - Georgia	Global BioClinical - Georgia
+46027e74-d9cd-454d-8d92-14c7494109aa	EI	Greater Poland Cancer Center	Greater Poland Cancer Center
+62b1cd27-c030-446e-a92c-01f3c195c2b4	D8	Greater Poland Cancer Center	Greater Poland Cancer Center
+6efadf3b-4c30-450e-be87-ef7b57a6a7db	D6	Greater Poland Cancer Center	Greater Poland Cancer Center
+ac622b4d-eef7-4894-924c-77bdfda9824a	D9	Greater Poland Cancer Center	Greater Poland Cancer Center
+df23ee13-bbd7-43bf-98de-08be3cc30b2e	D5	Greater Poland Cancer Center	Greater Poland Cancer Center
+e2955110-4fd2-4825-a5e1-e79086a76143	D7	Greater Poland Cancer Center	Greater Poland Cancer Center
+a915a161-4766-4724-b57c-90dcbadf62f7	M5	Greater Poland Cancer Center	Greater Poland Cancer Center
+f75b1d93-7f96-439f-9e46-39b5b668a7f6	M6	Greater Poland Cancer Center	Greater Poland Cancer Center
+622e94f4-5426-4467-a243-04b668831c9e	WH	Greenville Health System	Greenville Health System
+9e69e038-c4ac-4043-bb81-ce936ce17e27	W8	Greenville Health System	Greenville Health System
+675a5ecc-1c33-435f-90a0-d54ee869f22f	3N	Greenville Health System	Greenville Health System
+7ea941e0-f542-496e-8ee2-1b042afb5045	3Q	Greenville Health Systems	Greenville Health System
+82c10fde-f2d3-4a21-8511-8db9718c9c8e	3P	Greenville Health System	Greenville Health System
+8cb03ecd-48ce-4f85-9256-bdfa407319ef	WG	Greenville Health System	Greenville Health System
+a6af0c7f-9fa4-4912-8807-461a278b2e12	WJ	Greenville Health System	Greenville Health System
+a9d2734b-834d-49f4-8270-c2fd94497de7	4U	Greenville Medical Center	Greenville Health System
+ae9f71c1-b99d-4678-a0b0-f77026926f59	2K	Greenville Health System	Greenville Health System
+f83e1488-8397-4b35-95be-43ca812ef6b3	WF	Greenville Health System	Greenville Health System
+3f31b1fa-39db-467b-b60c-70b7420f1ad6	LT	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+877b6863-dcca-4106-9483-edd2af60961e	L4	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+899a27c2-e76a-4d64-9559-3a1737606882	LQ	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+d705e9b9-2943-444c-848b-27c0a5f32988	L3	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+e361b481-4739-40b8-a10c-b3070df3189c	PJ	Gundersen Lutheran	Gundersen Lutheran Health System
+033a600e-0e72-4b78-ac5c-31548782f20a	LS	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+635b4c6b-e46b-4a97-87a9-c3a688764080	PH	Gundersen Lutheran	Gundersen Lutheran Health System
+6f59a612-524f-40bb-a890-9f95a3438112	LR	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+bbebf873-44b8-43c2-934c-06acef10e5a8	NS	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+f1aebc16-7953-41c3-9741-6ec565a447cd	R7	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+f5f3b794-0e74-4cc6-8dee-3f6cccbf655f	S6	Gundersen Lutheran Health System	Gundersen Lutheran Health System
+8d38e3f9-8e80-4b1a-b908-b1ba9fb5e3e4	04	Gynecologic Oncology Group	Gynecologic Oncology Group
+d9bd4ce7-d4d8-496a-9c66-5f6b03cc6f4c	AX	Gynecologic Oncology Group	Gynecologic Oncology Group
+eeb76409-e947-4d6d-9986-8f581ec6c476	EK	Gynecologic Oncology Group	Gynecologic Oncology Group
+411d3c94-be62-4203-ba38-5fa44e81ee01	HY	Gynecologic Oncology Group	Gynecologic Oncology Group
+23b84e62-a204-4830-8236-57f2df8f4120	LC	Hartford Hospital	Hartford Hospital
+39e146d3-0d59-4e31-b2f2-4528b5e911fd	KU	Hartford	Hartford Hospital
+3c59adec-7304-42b9-a302-455fe5d248df	LI	Hartford Hospital	Hartford Hospital
+3f8e28e4-66f6-4df4-8f17-667b49a733a9	LD	Hartford Hospital	Hartford Hospital
+6da5f87d-b1e2-41ac-a29c-9608a3017037	KV	Hartford	Hartford Hospital
+ce20ea41-5598-4842-baae-0a82c0e67988	LG	Hartford Hospital	Hartford Hospital
+d727cd8a-0360-4490-bd66-6852494ca8d9	KT	Hartford	Hartford Hospital
+e05a81c5-2ae6-4976-bb92-8f68cbf1133d	L1	Hartford	Hartford Hospital
+5892f915-cda9-4d70-9279-16fcf3799241	LF	Hartford Hospital	Hartford Hospital
+984112f4-5a5a-4308-bde3-b54ecb2c2fbb	KX	Hartford	Hartford Hospital
+a47212e2-5de0-4fb2-8167-d33892a92023	KY	Hartford	Hartford Hospital
+abf32a2a-02bf-468e-b384-47ee71e817f0	KZ	Hartford	Hartford Hospital
+b4c9ab87-1730-4824-b473-16f2112ec43b	LE	Hartford Hospital	Hartford Hospital
+bc80fd15-8234-4ef6-9c96-e2afceb11da9	LJ	Hartford Hospital	Hartford Hospital
+bdb958a6-7ed2-41e0-bbb0-9096a4fac141	KW	Hartford	Hartford Hospital
+c4602d0d-8e74-4f10-bc69-ebb654abb87b	LH	Hartford Hospital	Hartford Hospital
+c8ca86b0-83ac-464a-8aba-f8549b1249db	L2	Hartford	Hartford Hospital
+19617822-1997-4874-aafe-2b0520ad966b	30	Harvard	Harvard
+99f41e42-373f-44c0-bcc7-0806b971ee16	CZ	Harvard	Harvard
+a79d1092-00aa-4829-874c-289c92d11830	KN	Harvard	Harvard
+b29811bc-75e5-45a6-b63b-a8456ba6185c	CK	Harvard	Harvard
+e56b4a8d-2248-4628-947c-25db21402d4f	CL	Harvard	Harvard
+bfca0e01-e9e8-4fab-8ed8-16d065a96846	QU	Harvard Beth Israel	Harvard Beth Israel
+40714898-eeb0-4aaa-9951-a99dbb0dc71c	06	Henry Ford Hospital	Henry Ford Hospital
+9c668501-cbc8-4ee5-9d9b-d48c796b02ec	DU	Henry Ford Hospital	Henry Ford Hospital
+6e5cd67a-7ca1-4454-8d91-9342bcb64c92	5T	Holy Cross	Holy Cross
+ec811ae6-62dc-45f5-bc42-33e675b4e00d	5S	Holy Cross	Holy Cross
+c104937d-424d-4f85-a1b7-f274f29b31e6	4V	Hospital Louis Pradel	Hospital Louis Pradel
+899f039a-4782-4678-a5ef-65a6cb0c575a	VM	Huntsman Cancer Institute	Huntsman Cancer Institute
+02ef95fb-6cf7-4778-96ec-b51abbee9ad1	Z2	IDI-IRCCS	IDI-IRCCS
+17a7fb06-f574-4bd5-add8-7fe40e54397a	CC	ILSBio	ILSbio
+2559ab8d-8d95-4505-b9e7-7237336f9c7f	J7	ILSBio	ILSbio
+2a1ded0e-351b-4e6c-9dd3-43c4a525281e	CD	ILSBio	ILSbio
+610e81bc-9c5e-417e-9745-fc34126b3e47	MO	ILSBio	ILSbio
+63fc0395-93e5-4cc7-b6aa-6cebaa8364dc	C9	ILSBio	ILSbio
+6bbcc023-f704-4234-8ca1-80fe045a57c3	DT	ILSBio	ILSbio
+9c58e775-8bfe-42b0-99d5-83e17ec77c1c	70	ILSBio	ILSbio
+a99d6158-9158-4e1d-ba8b-c596a36781df	QN	ILSBio	ILSbio
+afb51684-f587-4844-a22d-e55d4d0db51c	71	ILSBio	ILSbio
+b9fe6af4-6b69-4b02-84a5-ad13c2f46e9c	CF	ILSBio	ILSbio
+c5a1b42d-fa32-4af2-941f-aab240635e7f	LN	ILSBIO	ILSbio
+c64c52ce-ee3a-41a9-9cb0-7d49842e85d5	CA	ILSBio	ILSbio
+644b58d9-f22b-42df-83c4-f91f9069ca12	ZD	ILSbio	ILSbio
+a4696a47-f0ce-48bd-adf5-a1df6a4608ab	CB	ILSBio	ILSbio
+315e5108-3c9f-4df5-95c4-3eba8c6021dc	31	Imperial College	Imperial College
+3af3c902-4c7d-4999-bf77-e3c2c42e652e	05	Indivumed	Indivumed
+3da9af6b-d9e9-47eb-bc56-02c011668c8e	CH	Indivumed	Indivumed
+6ed12033-f3d6-4ab7-b693-67003c672c12	CG	Indivumed	Indivumed
+8c1642d1-ccc7-4eb1-9456-5c1b28beff3b	AG	Indivumed	Indivumed
+9d0c5e5b-d829-40d8-a800-84b020bce1d5	66	Indivumed	Indivumed
+ac89e27c-a28f-44a2-9d5b-a579cf0623a1	C4	Indivumed	Indivumed
+df151b52-dfd2-4d21-a36d-92ed817085f4	A8	Indivumed	Indivumed
+e40198c3-56cd-4fcc-b950-91a7d12858a5	AA	Indivumed	Indivumed
+4a37a018-0193-42a1-bd82-d7b59ad89705	V4	Institut Curie	Institut Curie
+87ecd3a4-0d60-452b-9647-9897ec63d88f	X4	Institute for Medical Research	Institute for Medical Research
+3fa98b16-51ed-487c-af69-b9f94d243f6b	PL	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+c3501d1d-f8a3-4e9a-b903-9c6aed43136e	PN	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+214c1d02-52cd-4631-9ef0-de588298bc4b	VG	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+36a81f12-daf6-45a6-95bc-daf02f87826e	VK	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+384cf782-7ff2-4c27-a461-80b159655845	X5	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+3ecb9f9a-64e8-4cb3-abbf-07a5654573d5	VH	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+88b8cd88-cb01-4fc1-bb02-ce26ecdd4ff1	VL	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+a506a654-d76b-47e8-b376-a11be1292e3f	VJ	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+c914d488-9ffb-4c9e-8904-3c39e218ac77	PM	Institute of Human Virology Nigeria	Institute of Human Virology Nigeria
+8e892fed-960b-4075-924b-006de73474ee	QV	Instituto Nacional de Cancerologia	Instituto Nacional de Cancerologia
+ffe6fd00-aa8d-4a5e-8802-ec70bca236f0	QW	Instituto Nacional de Cancerologia	Instituto Nacional de Cancerologia
+0bd65426-bd3d-4bc3-8c23-b64e7897805a	A3	International Genomics Consortium	International Genomics Consortium
+2b514dfe-47b4-475d-a46d-2967c4db30b8	FU	International Genomics Consortium	International Genomics Consortium
+34dbc35a-1890-448a-94b6-6ae7eb0a748d	AJ	International Genomics Conosrtium	International Genomics Consortium
+3fb84b43-99e7-4b65-abc8-3a79c9df7197	87	International Genomics Consortium	International Genomics Consortium
+4b8bc6fc-b52d-4f1e-b698-3f03a5a022a4	AD	International Genomics Consortium	International Genomics Consortium
+4fdf4bd7-4928-431c-908f-5e2b2c5de622	56	International Genomics Consortium	International Genomics Consortium
+5f250a5e-9605-4ae3-add0-ad6c1f0ed031	57	International Genomics Consortium	International Genomics Consortium
+60f7a4e7-de35-4206-8841-661b105ffde8	A4	International Genomics Consortium	International Genomics Consortium
+61de2793-85ab-41b0-81ff-85a5644d2561	SQ	International Genomics Consortium	International Genomics Consortium
+6387663b-1997-4961-804a-34e55fe182b5	HZ	International Genomics Consortium	International Genomics Consortium
+68052123-e6ce-41a2-a184-17cabf8ad4a0	NP	International Genomics Consortium	International Genomics Consortium
+6de9ebd1-17aa-4b78-879c-2354be68480e	FW	International Genomics Consortium	International Genomics Consortium
+71241ce8-6f51-4b39-9476-269ce993a6df	GC	International Genomics Consortium	International Genomics Consortium
+73f593c2-ca82-467a-af1d-1a07e8e6b6ea	HD	International Genomics Consortium	International Genomics Consortium
+79639123-e4a7-4545-a886-9a56429902c7	AH	International Genomics Consortium	International Genomics Consortium
+7c61adda-8d01-43f8-a12a-9e2a5b4e46e1	NQ	International Genomics Consortium	International Genomics Consortium
+81d8e020-0313-4acd-8c44-78d3caf5f025	FX	International Genomics Consortium	International Genomics Consortium
+87e577b7-32d0-495e-94d9-56636ca41ee4	55	International Genomics Consortium	International Genomics Consortium
+91676200-01f4-4357-bf54-a29174e2df7b	FV	International Genomics Consortium	International Genomics Consortium
+9c07374c-597f-4371-9ba2-2e6852945d1b	AC	International Genomics Consortium	International Genomics Consortium
+9fc6c590-91d7-478f-895c-7e528b9cafcf	HC	International Genomics Consortium	International Genomics Consortium
+a6810b9f-4ef7-4836-9b4a-27aacb22f698	FN	International Genomics Consortium	International Genomics Consortium
+b6f32838-d0db-4b90-a87b-cf7978b00e64	FM	International Genomics Consortium	International Genomics Consortium
+b89e3c63-6ee5-412d-89a1-b0a75cebe1ea	01	International Genomics Consortium	International Genomics Consortium
+f27c079f-308f-43a6-aa90-aaf5aad3e59b	FP	International Genomics Consortium	International Genomics Consortium
+f41e4a90-b02f-41ce-8803-b6a94f432a08	FY	International Genomics Consortium	International Genomics Consortium
+03edf858-17d3-414f-bfa2-2790da0ef8f9	WZ	International Genomics Consortium	International Genomics Consortium
+64efbbfd-e865-47ce-b300-3614a9e9e78d	NT	International Genomics Consortium	International Genomics Consortium
+71d2163b-e5d7-4032-85fe-36aeb336a06c	OW	International Genomics Consortium	International Genomics Consortium
+ac68ce8e-a41a-4279-8946-ce3ca89d71b3	ZT	International Genomics Consortium	International Genomics Consortium
+c8f0b99a-3c32-4ff8-8565-c172abca108f	IV	International Genomics Consortium	International Genomics Consortium
+d3924528-02d7-4ba8-8aaa-f24dbc0527f3	NR	International Genomics Consortium	International Genomics Consortium
+05590cac-6c24-4640-8a26-4a45e76f81b3	W3	John Wayne Cancer Center	John Wayne Cancer Center
+71776be8-2189-4fae-acfe-8bb626aa6e7b	VV	John Wayne Cancer Center	John Wayne Cancer Center
+07ae8676-d32e-428b-987c-73910d3c9f23	Z9	John Wayne Cancer Center	John Wayne Cancer Center
+3798a2ca-3b65-488b-90e6-574d0e2ae5e9	Z7	John Wayne Cancer Center	John Wayne Cancer Center
+e5d44b04-4bb4-4054-9a05-a85cb669e205	Z8	John Wayne Cancer Center	John Wayne Cancer Center
+07e70844-6191-47c0-9f83-cf6ac07e77cd	FK	Johns Hopkins	Johns Hopkins
+252c76f0-ca48-4ae4-b782-27a965ec9621	ET	Johns Hopkins	Johns Hopkins
+2f98c94a-d396-4866-afa7-38aa80b80694	49	Johns Hopkins	Johns Hopkins
+373c7735-e356-4dbe-b5e9-1442300f9506	33	Johns Hopkins	Johns Hopkins
+4b9cc07c-d7f6-4a11-a84a-d902a8b9e3d6	WY	Johns Hopkins	Johns Hopkins
+ecbba1b3-0882-4e3f-8be4-efb863929da3	BB	Johns Hopkins	Johns Hopkins
+1a732bce-a61c-4298-9e4e-e272c4342300	1Z	Johns Hopkins	Johns Hopkins
+7405274d-2531-4cee-ae7d-47c2ae1e87e2	XT	Johns Hopkins	Johns Hopkins
+de6da344-6665-47b3-9a26-97141b5ab2fb	FQ	Johns Hopkins	Johns Hopkins
+02e5a53a-f1a0-486a-b33b-96c80a62063c	NY	LeHigh Valley Health Network	LeHigh Valley Health Network
+367281f0-2346-4de0-ac50-60631160774d	NV	LeHigh Valley Health Network	LeHigh Valley Health Network
+607df1b7-bc11-4335-b770-cb6653004955	NU	LeHigh Valley Health Network	LeHigh Valley Health Network
+8148ac5d-a096-4799-8882-9a295c8a1482	NX	LeHigh Valley Health Network	LeHigh Valley Health Network
+f57c394b-0bba-45dd-8acf-3f8df61cb546	NW	LeHigh Valley Health Network	LeHigh Valley Health Network
+fd7b6637-dcc6-4e5f-8940-10720b69c65c	03	Lung Cancer Tissue Bank of CALGB	Lung Cancer Tissue Bank of CALGB
+033679ea-c1ce-46e2-8562-76094082a594	PX	Maine Medical Center	Maine Medical Center
+1cf9ef01-3d78-4225-a6c6-5226be94411d	PV	Maine Medical Center	Maine Medical Center
+1faaddf9-635c-4353-8d48-27de87a69b10	R4	Maine Medical Center	Maine Medical Center
+3285fc75-7081-46ef-a3a0-e89a888d8eae	PT	Maine Medical Center	Maine Medical Center
+49e565b6-de64-4dd3-871a-545883ed60eb	TP	Maine Medical Center	Maine Medical Center
+71544dc3-8797-4e62-b6fc-276ff0b4b59a	PW	Maine Medical Center	Maine Medical Center
+9b4bd707-2b75-444a-aa0a-5e8d4bf85f92	PY	Maine Medical Center	Maine Medical Center
+bcd1b3bc-ecbf-4e81-b3d9-8d1cdd5b8f59	2B	Maine Medical Center	Maine Medical Center
+f69ca66e-9b11-4f1d-86b9-9764a3a58ef6	PU	Maine Medical Center	Maine Medical Center
+052a7227-10c5-43c1-a0ef-a8b6d287361f	AR	Mayo	Mayo Clinic - Rochester
+09806004-9426-4aa8-aa58-a7a4d223e1e1	25	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+0d6355a2-1fdc-4b14-963c-4300d57a043b	CW	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+4570b732-3022-41ae-b894-00c76714f70d	J8	Mayo Clinic	Mayo Clinic - Rochester
+491d5929-b75e-41d4-a16c-5001730b1c41	15	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+6aee395b-5a05-45d4-a098-be037c71e50e	D1	Mayo Clinic	Mayo Clinic - Rochester
+8133b36f-3674-4712-9469-69699668cbd7	DD	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+b4503fe1-f07f-41dd-b546-aa75d9748fe0	DB	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+b61fbfe1-4f22-4625-84c5-5a809829cd8a	22	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+bc437e8b-2981-4c53-98b0-e6859d0b8ae0	DZ	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+eae0f0e5-6665-406b-8baa-c987ca34a334	NF	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+2d7ac5cd-fe17-4122-8099-ecb2a89f9fce	W5	Mayo Clinic Rochester	Mayo Clinic - Rochester
+4dd12d22-1fde-4ef5-a109-dfd144687c45	RF	Mayo Clinic - Rochester	Mayo Clinic - Rochester
+e6a1308a-75c6-4489-8301-001330902194	2J	Mayo Clinic	Mayo Clinic - Rochester
+851be82f-4f89-4e6a-b040-e87e3348a252	SX	Mayo Clinic Arizona	Mayo Clinic Arizona
+268573aa-70f7-4699-b991-90317a88a661	XL	Mayo Clinic Arizona	Mayo Clinic Arizona
+523f43e7-1026-4d4f-a17c-0bd9ae6bc385	XK	Mayo Clinic Arizona	Mayo Clinic Arizona
+f86462fc-1e1c-47b5-9b79-a6052d1ed2b2	SY	Mayo Clinic Arizona	Mayo Clinic Arizona
+58d6181a-20ee-4c20-8154-f0b785aece64	H4	Medical College of Georgia	Medical College of Georgia
+73178158-19bd-4152-94e6-c20059315136	V9	Medical College of Georgia	Medical College of Georgia
+73ce48c7-df6d-4806-9977-71bbf3d3fe1d	DO	Medical College of Georgia	Medical College of Georgia
+9bd81022-4923-46db-8b10-712730406228	V7	Medical College of Georgia	Medical College of Georgia
+b1a6e011-0afd-4b07-a8b8-3d9aff741c1b	CX	Medical College of Georgia	Medical College of Georgia
+eafb7af1-e5ca-4d6f-86e7-36907a39c9f7	H5	Medical College of Georgia	Medical College of Georgia
+07c57bd4-8040-41e7-98ee-c221c8081a2f	H1	Medical College of Georgia	Medical College of Georgia
+31bbc309-3ee9-419f-853f-bb08e06ce2a1	SS	Medical College of Georgia	Medical College of Georgia
+66f6d8fa-3b7b-4475-9ce1-1aab8ec4085c	V8	Medical College of Georgia	Medical College of Georgia
+1ad66571-fa75-4a49-b5e1-47e2c0c32631	C5	Medical College of Wisconsin	Medical College of Wisconsin
+2825a1b2-b684-4dac-9a15-1df8fb99dd03	W2	Medical College of Wisconsin	Medical College of Wisconsin
+4c4baa29-9e40-48b6-a723-6c0e6b1b1856	4Y	Medical College of Wisconsin	Medical College of Wisconsin
+68ff7e12-9a63-4dbe-bd63-91999d987031	5B	Medical College of Wisconsin	Medical College of Wisconsin
+e3fb08db-fba1-42d7-8fa6-7a7e9fe96cd2	ZP	Medical College of Wisconsin	Medical College of Wisconsin
+e8942db4-646e-43d6-b4fd-b2869b4334a6	J9	Melbourne Health	Melbourne Health
+58c971a5-6a96-4059-af58-142834509661	KH	Memorial Sloan Kettering	Memorial Sloan Kettering
+5c95f5ba-d573-4b59-8fe3-977fec5ef30b	IR	Memorial Sloan Kettering	Memorial Sloan Kettering
+77318376-5df9-4a63-a24d-f1cc2f4709c9	DX	Memorial Sloan Kettering	Memorial Sloan Kettering
+7e5a2bad-5800-4eae-9619-b8b7a1cfc750	IS	Memorial Sloan Kettering	Memorial Sloan Kettering
+80704405-9839-49d2-b3e2-7e090e2d9b9e	13	Memorial Sloan Kettering	Memorial Sloan Kettering
+89ff65e2-195b-418e-87e3-b96ad070e044	SC	Memorial Sloan Kettering	Memorial Sloan Kettering
+8ee51df3-a183-485d-94af-d2a30e0eb37c	RS	Memorial Sloan Kettering Cancer Center	Memorial Sloan Kettering
+c1a6d0f9-0414-4ec9-9fff-a6cc9953f784	DJ	Memorial Sloan Kettering	Memorial Sloan Kettering
+ff6cc4d4-cf2a-4a60-93f1-33b536c6d6df	DK	Memorial Sloan Kettering	Memorial Sloan Kettering
+4c5e7d41-d040-4183-8682-9d9fbfbd62c3	2A	Memorial Sloan Kettering Cancer Center	Memorial Sloan Kettering
+88b18b46-88ed-451d-911b-ef81037d9801	RW	Michigan University	Michigan University
+afc8aa98-8cb0-48c8-97ef-65c5ccae6fec	2Z	Moffitt Cancer Center	Moffitt Cancer Center
+c0d2d698-8319-4863-8709-0ce4a3c61c8d	2Y	Moffitt Cancer Center	Moffitt Cancer Center
+d809e536-e860-4779-bca8-d17ed64e1c24	3B	Moffitt Cancer Center	Moffitt Cancer Center
+d9dcab70-2fec-4ff8-a443-507b64f9af49	3A	Moffitt Cancer Center	Moffitt Cancer Center
+0255967f-249e-4f6c-ac81-b349fac3e74c	4D	Molecular Response	Molecular Response
+076b6fe9-2661-45d3-93bc-3659df58533f	T3	Molecular Response	Molecular Response
+28a95754-0798-4b73-ab3c-8cba3a3d907b	4E	Molecular Response	Molecular Response
+65a09f67-5765-4d1f-990d-5d377dcaf0b9	T6	Molecular Response	Molecular Response
+6e0288f6-d1c6-42b1-8c29-1d7bd504eb48	T4	Molecular Response	Molecular Response
+791bd8d6-30f7-4e7d-bfd4-c30c56e48184	T9	Molecular Response	Molecular Response
+7eacaef5-4e97-4db7-9c0f-11c03b1bdf2d	T5	Molecular Response	Molecular Response
+8d5dd1fc-c727-4e22-8b27-d5476d00b686	T7	Molecular Response	Molecular Response
+a3066020-8eb7-440d-8209-0078d4d69298	T8	Molecular Response	Molecular Response
+ced35bc7-0b73-492e-a308-11bbe70d21e4	TA	Molecular Response	Molecular Response
+20594dbe-2b54-4a94-a5c2-f9f026e36477	RG	Montefiore Medical Center	Montefiore Medical Center
+55024451-f408-44ae-a230-58fb7b3f2942	PG	Montefiore Medical Center	Montefiore Medical Center
+6bce57e6-95b3-4a7a-9a22-b104015c3033	N1	Montefiore Medical Center	Montefiore Medical Center
+76a51585-88e1-4bad-9c7b-8edf9e9a776b	MZ	Montefiore Medical Center	Montefiore Medical Center
+84b2240c-d786-41a6-905b-e57d8f1d7a6f	MY	Montefiore Medical Center	Montefiore Medical Center
+2e2ec048-fc91-46ff-a232-89b195dac265	NZ	Montefiore Medical Center	Montefiore Medical Center
+1559ac3f-99a5-4f81-ae17-bc410e556ac8	OK	Mount Sinai School of Medicine	Mount Sinai School of Medicine
+67231ac0-6e12-4086-8e15-fac8cfd1aaaa	KD	Mount Sinai School of Medicine	Mount Sinai School of Medicine
+0a7815a8-bfe0-4a34-9ce7-7906dc10a821	QJ	Mount Sinai School of Medicine	Mount Sinai School of Medicine
+dc610b6f-31fe-43e2-b35c-6c4e6d201d5e	KE	Mount Sinai School of Medicine	Mount Sinai School of Medicine
+6e48b0ef-e4e6-4574-9946-277d21360ba5	VN	NCI Urologic Oncology Branch	NCI Urologic Oncology Branch
+6e994e94-7eea-4e33-92cf-c7c6299d29c3	DW	NCI Urologic Oncology Branch	NCI Urologic Oncology Branch
+c9b9acdd-c128-4d5e-bf35-2646f3056bc2	KM	NCI Urologic Oncology Branch	NCI Urologic Oncology Branch
+ce18fa8e-fbcc-4aec-add3-96a07aed83af	DV	NCI Urologic Oncology Branch	NCI Urologic Oncology Branch
+026aecfc-ac94-4dad-9303-283bc8766922	HV	National Cancer Center Korea	National Cancer Center Korea
+d7ba890c-3902-44ce-a840-8ffbaa1f8561	HU	National Cancer Center Korea	National Cancer Center Korea
+301fc6df-f607-465c-9049-23997001b2f2	QR	National Institutes of Health	National Institutes of Health
+71c3c782-25ca-48df-8543-812ef7e847b3	L6	National Institutes of Health	National Institutes of Health
+4bdf2004-e243-4919-8538-6312ea416476	4F	Northside Hospital	Northside Hospital
+53597e56-37b7-4dca-9da4-d520c7b63de5	1Y	Northside Hospital	Northside Hospital
+6b18b350-9fb6-4455-9b1f-7c4f3d184d01	5E	Northside Hospital	Northside Hospital
+49e6b236-7dca-44ab-9d6f-4f66442c61c0	VW	Northwestern University	Northwestern University
+4696e94c-b00d-488b-b4da-6fd42e5efe11	RU	Northwestern University	Northwestern University
+6a6e56e7-7a0e-4685-a120-c210a7bbef49	VU	Northwestern University	Northwestern University
+7868b1e6-5323-44e3-9cbe-ff60ad35a731	RV	Northwestern University	Northwestern University
+9febdf48-8c80-4155-bfc7-6820400890f5	VX	Northwestern University	Northwestern University
+51ca6cde-0646-4425-ba73-5c0102ca2f3f	FE	Ohio State University	Ohio State University
+8706dd75-f182-4a0b-a46e-3b1bca95114b	TN	Ohio State University	Ohio State University
+8fe7489b-1144-4257-acb7-af242cea53ea	YZ	The Ohio State University	Ohio State University
+217dbe10-2805-4bcb-8c25-c18e54f190b4	DG	Ontario Institute for Cancer Research	Ontario Institute for Cancer Research
+23a58927-3cf0-48db-87ff-32ae6b63b881	79	Ontario Institute for Cancer Research (OICR)/Ottawa	Ontario Institute for Cancer Research
+36fb50dd-245d-4655-9757-bb106988eb88	HN	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+394c97cd-ac64-43ff-a2bf-bf14ed11fbaa	HP	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+5387e901-91e1-4299-ad37-60b92aacfaeb	63	Ontario Institute for Cancer Research	Ontario Institute for Cancer Research
+57d57f37-179d-4c5c-947a-5c4e79563420	M9	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+8486690b-017c-4fa5-ab2d-7493be2ebb61	HS	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+a7990b0c-8da4-423d-ae74-e81747447394	HF	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+ac036f79-05a9-48f9-b4ab-b3cbbb0bd4b7	HE	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+add5e058-eec0-407d-aa99-6510755f73c0	80	Ontario Institute for Cancer Research (OICR)/Ottawa	Ontario Institute for Cancer Research
+bceacf8a-8074-4211-ba61-761cc0c799d8	DF	Ontario Institute for Cancer Research	Ontario Institute for Cancer Research
+bd71a2ae-2be4-45be-a2ba-1c6070226e49	M8	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+c2bf55ec-15e4-4ecc-82aa-af52a5c02dda	HR	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+d903ea4c-a2ae-44c6-88d1-760c5eb4f893	75	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+fa9bff2a-63fe-4f0a-8a41-c12e50d8f61e	HQ	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+21f6cecb-831e-47d7-b5fa-876d938595de	EH	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+70be235e-5cd8-4afe-bd4d-71c4fa56a0ef	CY	Ontario Institute for Cancer Research (OICR)	Ontario Institute for Cancer Research
+9170d04b-4701-4751-9ab7-6835f07ec3b6	SH	Papworth Hospital	Papworth Hospital
+73c421d5-9735-40f3-8cde-5c0d5bef2de8	RE	Peter MacCallum Cancer Center	Peter MacCallum Cancer Center
+76603680-45a1-4b47-a74d-a72820434c6e	RD	Peter MacCallum Cancer Center	Peter MacCallum Cancer Center
+2f29b386-882e-4a82-a49e-37371c950ddf	77	Prince Charles Hospital	Prince Charles Hospital
+e001c701-3147-45bb-916b-e0a698c00846	78	Prince Charles Hospital	Prince Charles Hospital
+beedee73-0a0d-4285-ac30-7da7dda80eca	18	Princess Margaret Hospital (Canada)	Princess Margaret Hospital (Canada)
+6e836d9e-0fb5-4273-a4d1-636dc107490a	48	Princess Margaret Hospital (Canada)	Princess Margaret Hospital (Canada)
+21a8d6a3-911d-4f81-8365-e0c9af8f75c0	4J	Proteogenex, Inc.	Proteogenex, Inc.
+4ee80744-24ed-4db4-9a8d-591da3727f1c	5Q	Proteogenex, Inc	Proteogenex, Inc.
+6dd0f4f3-1fae-4d4e-89a8-c6bab4b0500a	4H	Proteogenex, Inc.	Proteogenex, Inc.
+7f3d8007-9772-49e1-b5d7-44f92654d590	5R	Proteogenex, Inc	Proteogenex, Inc.
+b6c4cc9a-cbc4-4fe4-b515-4d8262ba04c1	4K	Proteogenex, Inc.	Proteogenex, Inc.
+d30aca1a-b7a4-419e-99d3-11425276f612	4L	Proteogenex, Inc.	Proteogenex, Inc.
+6859cc47-9141-4802-92cd-7ff159a1ce86	XD	Providence Portland Medical Center	Providence Portland Medical Center
+5e035acb-8ab6-40f4-865f-779b14361c2d	5U	Regina Elena National Cancer Institute	Regina Elena National Cancer Institute
+07aa3e47-c42b-4a3d-86b1-2beaf758e516	5H	Retina Consultants Houston	Retina Consultants Houston
+0cfc12ab-0d0a-4df6-8ce9-e0dde2d8c0ab	E2	Roswell Park	Roswell Park
+1feaa97c-d64b-450f-93b8-4276a1a2c0c7	G7	Roswell Park	Roswell Park
+2b3c47bd-92b1-4e86-8f9f-2aaa60037aa5	60	Roswell Park	Roswell Park
+2b703182-c59c-40a5-882a-6aaddeb98411	E5	Roswell Park	Roswell Park
+2f2a7624-58ad-43d3-94a0-8c7a8ed17bed	OU	Roswell Park	Roswell Park
+39c0e60c-5b91-4513-82f0-810ab6ba89d9	E3	Roswell Park	Roswell Park
+3f2df763-3136-4931-8242-a134b1e45a35	59	Roswell Park	Roswell Park
+41f67975-f29a-4093-b283-60ad8bc6ea9a	G8	Roswell Park	Roswell Park
+51087833-0755-4a7b-a092-4799ef151d3d	G5	Roswell Park	Roswell Park
+60e38df9-39a9-4044-9b33-cf4e69821011	GN	Roswell	Roswell Park
+66c49eeb-bb24-4021-af47-a46455a48cfb	G6	Roswell Park	Roswell Park
+676b9242-c68e-49d9-9375-dc9b7f462252	QQ	Roswell Park	Roswell Park
+7ea592ce-3f82-4c04-88bc-090cf441b45c	E6	Roswell Park	Roswell Park
+91086aca-6b83-49c6-bdd1-8c29d4fab84e	G4	Roswell Park	Roswell Park
+96772318-fdaa-417b-a2d8-ca8e8069eb6c	PR	Roswell Park	Roswell Park
+9b0738c5-c263-4f70-89f2-4abf0e7a3040	HG	Roswell Park	Roswell Park
+bfac16bd-921d-446d-9249-de8ec49d81c2	NI	Roswell Park	Roswell Park
+c03ff5b4-e200-4423-b60a-c5c8cb749fbe	YY	Roswell Park	Roswell Park
+cd4fd7da-1d8a-4fa5-b89b-60391f98e9c2	G9	Roswell Park	Roswell Park
+f5062e01-b949-4ede-8b5e-eb12d29514c7	NG	Roswell Park	Roswell Park
+fc1a4332-85c2-4583-b144-d30622857fbb	73	Roswell Park	Roswell Park
+720b887e-8ecd-476a-a2cd-cad53a1c498f	5V	Roswell Park	Roswell Park
+977ffbb6-c0bb-4ec0-9d82-5ce43df8aa54	65	Roswell Park	Roswell Park
+918ec1a0-bbd9-4795-b0de-e57e5981bff7	YL	Research Institute of McGill University Health Center	Research Institute of McGill University Health Center
+05ab18c6-f444-4d07-a3ec-79ce6cd2814b	OD	Saint Mary's Health Care	Saint Mary's Health Care
+1e707f1f-e9d4-4d33-9d17-a622c7f3d816	OE	Saint Mary's Health Care	Saint Mary's Health Care
+41c7c520-a6f3-4eb7-b7b7-2158b45e20f3	O8	Saint Mary's Health Care	Saint Mary's Health Care
+e39803ca-27e7-4243-8f43-e3b50ea90dd8	O9	Saint Mary's Health Care	Saint Mary's Health Care
+0a536808-d9cb-4bc1-92f5-5db9ddf91511	OC	Saint Mary's Health Care	Saint Mary's Health Care
+17328e2d-86b2-4542-b9f2-ad35de7e33c9	OA	Saint Mary's Health Care	Saint Mary's Health Care
+2c97effd-7634-462b-bb9b-b157420c5e88	OB	Saint Mary's Health Care	Saint Mary's Health Care
+5bd94bc9-976e-41a4-8386-914a4d3df077	O4	Saint Mary's Health Care	Saint Mary's Health Care
+6f3e67d8-c4ea-42e3-adf4-38f591820d5b	O5	Saint Mary's Health Care	Saint Mary's Health Care
+77ee7369-1a07-4853-aa68-76758a0786d0	O6	Saint Mary's Health Care	Saint Mary's Health Care
+8583174d-8040-4504-9781-3a04a2bb19a0	OF	Saint Mary's Health Care	Saint Mary's Health Care
+b202ef1e-5e66-4735-b2d3-4c50e32c0d9b	OG	Saint Mary's Health Care	Saint Mary's Health Care
+b266dacd-60f4-4e79-8856-51cc8dc93a17	O3	Saint Mary's Health Care	Saint Mary's Health Care
+b7aaf343-b05b-485c-affe-e6f637b9ebaf	O7	Saint Mary's Health Care	Saint Mary's Health Care
+bc01faac-a462-4c87-b2de-1a2612598d64	OH	Saint Mary's Health Care	Saint Mary's Health Care
+dc36cde3-d6e6-4670-a340-7e0267bb0d9e	OJ	Saint Mary's Health Care	Saint Mary's Health Care
+c43a001d-4465-43fe-b35a-f5237304a593	4G	Sapienza University of Rome	Sapienza University of Rome
+e9bf37e9-0291-4429-b1fa-6a2bf874d2cf	FF	SingHealth	SingHealth
+74fc3a3b-2413-403c-aef1-8aabee6eb8fa	N3	Southwestern Medical Center at Dallas	Southwestern Medical Center at Dallas
+9d32cde4-d60e-47d4-aef4-dcc2755c5cad	N4	Southwestern Medical Center at Dallas	Southwestern Medical Center at Dallas
+9ed86589-abe9-439d-a522-647ab4e29208	N2	Southwestern Medical Center at Dallas	Southwestern Medical Center at Dallas
+30503b94-6e8f-4c30-a733-3eb0238555eb	YB	Spectrum Health	Spectrum Health
+5281bc8e-6cf2-4528-938d-f5d9e94c8f4a	YC	Spectrum Health	Spectrum Health
+84301081-0a36-47a2-84b3-7b69773ef2a2	Y8	Spectrum Health	Spectrum Health
+f4f29050-937b-4666-9701-b0d13903501a	XX	Spectrum Health	Spectrum Health
+0b186b02-157f-4317-9944-fe27b7696bc0	ZE	Spectrum Health	Spectrum Health
+140a6457-2938-4ef0-a68d-454c829d726c	YK	Spectrum Health	Spectrum Health
+2e464ded-05a0-4dff-9039-93bc5d78130b	Y9	Spectrum Health	Spectrum Health
+4511c336-c6c1-4371-90cc-33e75c2ee4b0	Y7	Spectrum Health	Spectrum Health
+7c713c09-1363-4891-a912-fab5a81043cb	YD	Spectrum Health	Spectrum Health
+969804cd-3555-4740-b14d-6c88187608b3	YA	Spectrum Health	Spectrum Health
+9a7b44f5-362f-43d1-97e3-d527761fc8e7	Y2	Spectrum Health	Spectrum Health
+cb1d4912-9b3a-41ca-a982-05a1ddaee087	ZU	Spectrum Health	Spectrum Health
+dd5a9ee9-fb52-4d7c-bac9-7fb05d7e3bc4	XY	Spectrum Health	Spectrum Health
+2257f1c2-bb69-4e42-bc89-c1d08eff2eb2	T1	St. Joseph's Hospital Arizona	St. Joseph's Hospital (AZ)
+461901f8-4822-4b5d-b615-cddc6647a02e	32	St. Joseph's Hospital (AZ)	St. Joseph's Hospital (AZ)
+6f189c6d-9dfe-4207-b11b-7a007cf6834a	RP	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+6f663720-7f96-40da-8151-a0ba70215861	RN	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+780b4694-0ae1-4c48-9823-eb2c2af21aac	RR	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+a28b50e3-bf29-44f1-ad1e-492a1c173a90	RQ	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+aa26e897-749e-44bb-9df8-15e1a7328322	RM	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+ef6a0950-cdcd-4ff5-a68e-67c56ca74e02	SL	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+18c8abdd-c046-41f8-a58e-edbf36d73a6c	RK	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+7b3d4690-7807-45e2-b98f-be587f123ed3	RL	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+8a5c2376-38b0-4ac7-8902-c0e31e41e84b	RJ	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+c0d8a457-55f4-4eea-9b39-7e2936b7b8c3	X8	St. Joseph's Hospital Arizona	St. Joseph's Hospital (AZ)
+c1dc4e72-6a4e-4704-87fd-f1c9dc0a4d9c	5K	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+decc8a34-711d-4c91-9852-7a45043a98d3	SK	St. Joseph's Hospital AZ	St. Joseph's Hospital (AZ)
+f362470f-5aaf-4d6a-a858-4ecf478b8107	SZ	St. Joseph's Hospital Arizona	St. Joseph's Hospital (AZ)
+38e4d910-54cf-4b94-ad6c-abe82c9661b4	BW	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+38f42f3e-96a0-43b2-b67b-3186c84d1afd	67	St Joseph's Medical Center (MD)	St. Joseph's Medical Center (MD)
+974a28fd-d1f5-4e90-82b2-378762b878bf	46	St. Joseph's Medical Center (MD)	St. Joseph's Medical Center (MD)
+a862ce5a-7fa4-4884-942d-6be9c043daff	AT	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+c272a771-a466-4d8e-95cb-63bb1ec8dba7	AS	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+f764057f-1455-4148-8d5e-ac007874d395	AU	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+0f96b183-95ef-4c37-9ae2-dd29c5f5cc43	45	St. Joseph's Medical Center (MD)	St. Joseph's Medical Center (MD)
+3e0029a2-75eb-4fee-bb78-7c56a6052e09	EG	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+5e3f8ab7-bfa2-4c52-bb75-92f5b927ebcd	BX	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+93b6657c-5085-4f45-a699-d7c40a0e1ae1	C3	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+973751d9-9421-4e9f-a5fe-dd61d3217498	J6	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+9d6939c7-2512-4556-96ee-a8f75fe24c88	47	St. Joseph's Medical Center (MD)	St. Joseph's Medical Center (MD)
+a2343a91-b6d1-41ae-bfbb-03be0244424a	C2	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+a8db28b4-82f1-41cd-80af-2c7ef59f0791	BZ	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+bad4c879-48b2-4777-bb26-5dfe23166fdf	BY	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+d6e03f94-0b7b-481c-93be-b7e593d5272f	BV	St. Joseph's Medical Center-(MD)	St. Joseph's Medical Center (MD)
+79759556-137f-46db-8fdb-a7a057f74e63	YH	Stanford University	Stanford University
+d5a25513-bcae-4759-bd98-7629d14a1f81	YJ	Stanford University	Stanford University
+fd7e503c-cc5b-4b9d-9416-7a1db52e42fa	YE	Stanford University	Stanford University
+93658f9c-2849-4b66-801f-7ba6a886e152	74	Swedish Neurosciences	Swedish Neurosciences
+f9549db0-8a25-429b-ae9e-8a5687713d05	CP	Swedish Neurosciences	Swedish Neurosciences
+60d29601-3d84-4464-9994-dccddaec84db	07	TGen	TGen
+4b21973a-bd31-4a1d-98b7-898322535cca	ZS	Tayside Tissue Bank	Tayside Tissue Bank
+9da5f512-0379-4c7d-a2cd-8216183238fc	ZR	Tayside Tissue Bank	Tayside Tissue Bank
+a45a0f0d-de48-4882-8fe2-a65c91255666	ZQ	Tayside Tissue Bank	Tayside Tissue Bank
+2674f2d9-ae87-4613-b2c0-6c9b8f94573f	2L	Technical University of Munich	Technical University of Munich
+82c233cc-89f7-4081-a085-77af36d779f4	2M	Technical University of Munich	Technical University of Munich
+f2c4fe72-449f-4544-aa7d-f0e947bf9713	2N	Technical University of Munich	Technical University of Munich
+0831b9a3-b31d-482a-9bb7-362cda7aa331	76	Thomas Jefferson University	Thomas Jefferson University
+317a3b49-7d5a-40e5-850b-4ef1e395eb65	CS	Thomas Jefferson University	Thomas Jefferson University
+744062a7-4612-4950-8d14-bcce7dffb3b7	16	Toronto Western Hospital	Toronto Western Hospital
+1b8e0e09-faa6-4759-a8a6-a52e99cfe638	P7	Translational Genomics Research Institute	Translational Genomics Research Institute
+ed41437c-1d33-4786-888e-28a37b77fc18	P6	Translational Genomics Research Institute	Translational Genomics Research Institute
+a9ad1c6a-03a0-4f64-be8e-f7c9ab50eaa2	SR	Tufts Medical Center	Tufts Medical Center
+1f342df1-f8c1-448c-a3fe-6d99ab3a4080	08	UCSF	UCSF
+6c528ce0-17f1-4a4d-961d-04e2fcd39913	UB	UCSF	UCSF
+98ad88ee-6795-4870-a139-fe936e61226c	09	UCSF	UCSF
+d003d730-0c98-4ade-939e-9cb0636e0d7e	A1	UCSF	UCSF
+65d5bf69-55d7-4d7d-96fe-3f3a34655923	W6	UCSF	UCSF
+263dde83-9ec8-4cf4-ae8f-444cc4e768c4	SP	University Health Network	University Health Network
+91e7ace7-f0b9-4d95-a98f-e366eb50a19f	EO	University Health Network	University Health Network
+96417151-eab8-496e-9f3a-f760e4ed2229	CQ	University Health Network, Toronto	University Health Network
+9a9294ac-4404-4702-8380-86598959d392	KB	University Health Network, Toronto	University Health Network
+cbd32589-169f-4cdd-91f8-4bcc4fee09b3	JY	University Health Network	University Health Network
+dbd56534-cf3e-4505-8583-604c262105a4	PK	University Health Network	University Health Network
+f0567037-2521-4945-85f4-15b922c791a1	EM	University Health Network	University Health Network
+0c34561f-b9da-4172-8ab5-8039b928e586	XU	University Health Network	University Health Network
+e9c84f27-5c0e-46f3-9b28-5ffad151a2ef	EN	University Health Network	University Health Network
+90641a2c-d9d2-4022-a15f-aa32c6ad6f45	5N	University Hospital Erlangen	University Hospital Erlangen
+a6f91a7d-6711-4046-bd31-762aa9dc229c	5P	University Hospital Erlangen	University Hospital Erlangen
+68aa0a70-036e-480c-8015-2f764fb41fbc	S7	University Hospital Motol	University Hospital Motol
+2404d89b-5833-4e0b-82de-55a213ecb7ec	ZG	University Medical Center Hamburg-Eppendorf	University Medical Center Hamburg-Eppendorf
+15fb7d42-46da-46de-8915-9e7ed9799ac6	KS	University Of Michigan	University Of Michigan
+1a3c3b0b-f509-4d1e-b206-7131d495e988	DY	University Of Michigan	University Of Michigan
+2aea0289-0ed8-43b5-8397-05eced1003fd	DQ	University Of Michigan	University Of Michigan
+5a4b8ba4-45e9-411a-aa24-33777f97642d	DM	University Of Michigan	University Of Michigan
+d3487f84-ccd9-485f-80a1-5a68caaa471f	KR	University Of Michigan	University Of Michigan
+536c05cd-1c4d-4ab1-bcc1-d0e30e38af68	1W	University of Alabama	University of Alabama
+63f77715-1f49-4e3a-aba3-d217716b7055	1T	University of Alabama	University of Alabama
+7b647351-89fa-43cb-968f-1c7b4d1dd92e	ZX	University of Alabama	University of Alabama
+88cbf718-34e0-46b5-a1b1-8c4efe936de0	1V	University of Alabama	University of Alabama
+9c2717fb-3354-45e1-8726-7102e6443e14	ZY	University of Alabama	University of Alabama
+ac88c94d-e30f-41df-adc3-63746c7cbf45	1X	University of Alabama	University of Alabama
+ce7d76fd-51e9-4daa-a9b7-643e6b2a78bb	5W	University of Alabama	University of Alabama
+dd5b257f-930d-40bd-8fe5-ee41a4935ce7	1U	University of Alabama	University of Alabama
+f150f58c-a140-4522-b16d-a5aa2f654541	5X	University of Alabama	University of Alabama
+f4798406-20e1-4d2f-b834-6ff7bca97605	ZW	University of Alabama	University of Alabama
+fc826223-c88c-43f0-87af-d8432500c6c4	ZZ	University of Alabama	University of Alabama
+07c47a9e-af10-4f97-9359-1071233d7607	Y4	University of Arizona	University of Arizona
+300c06f2-c42f-4f2a-9b26-22dc79d2ca1d	2D	University of Arizona	University of Arizona
+7c466e89-096b-433e-aa38-d4ec4b591ee4	Y6	University of Arizona	University of Arizona
+9ed6c5d3-78bd-4c52-921e-ebe70aed80aa	YM	University of Arizona	University of Arizona
+a492a9e1-fdc3-4226-b050-e5fdec40449d	YN	University of Arizona	University of Arizona
+d80cb587-2cf4-4285-8a50-9ab7c8433682	Y5	University of Arizona	University of Arizona
+0422d060-e674-473b-883b-79ccccd7bf49	2V	University of California San Diego	University of California San Diego
+0c6e1f98-6fba-41b9-a1a2-fa1695868700	2P	University of California San Diego	University of California San Diego
+3655f92a-87c9-412e-92b8-4408843e73ff	3W	University of California San Diego	University of California San Diego
+51723e20-40a1-44f2-9a44-72a3f230b000	2Q	University of California San Diego	University of California San Diego
+68d669ab-2f9d-4287-81a0-99e29721c741	3V	University of California San Diego	University of California San Diego
+8061d116-182d-4a75-be96-da1f2d19240a	2U	University of California San Diego	University of California San Diego
+86448e3e-b4b3-4a84-a739-2847105e51a6	2S	University of California San Diego	University of California San Diego
+b0cfb1c3-35f0-421f-a621-000b179ab5d2	2R	University of California San Diego	University of California San Diego
+b7a87b66-488d-4f95-b44f-5acd986b7d3e	2T	University of California San Diego	University of California San Diego
+08ff435c-7fb2-42f7-9c97-79348ae9ee56	RY	University of California San Francisco	University of California San Francisco
+3aa47c81-5807-4490-a6c7-1002e9460937	UY	University of California San Francisco	University of California San Francisco
+44ce0ea7-389b-4f2a-b930-888dc3a29247	V1	University of California San Francisco	University of California San Francisco
+9e610a0b-8787-4be0-a35c-d8ec0b658118	UZ	University of California San Francisco	University of California San Francisco
+cc196182-2ef6-40b7-9a8a-05b308b3587d	X9	University of California, Davis	University of California, Davis
+4db322a9-f209-404d-8f3e-184b4e5a3e8d	OL	University of Chicago	University of Chicago
+9e573b58-5ea3-4c95-82ef-0c4d88f663ad	S4	University of Chicago	University of Chicago
+001d6dc5-bc06-4a14-a9a5-81d814757675	QP	University of Chicago	University of Chicago
+062a22b3-75f4-4d55-a153-ff1b6be6ff27	OP	University of Chicago	University of Chicago
+155964c6-7208-4f68-b538-ee514b783e98	3U	University of Chicago	University of Chicago
+204bd253-789d-42c9-a9ad-75a0be73c9f8	ON	University of Chicago	University of Chicago
+7faffbb9-5b4d-48fb-ab18-3b60c923cc34	OM	University of Chicago	University of Chicago
+a235a33c-fa6f-464e-86c8-6c6eaa697c2d	XZ	University of Chicago	University of Chicago
+b7aa9f06-c1ce-4c06-a70c-a1c1a9fab454	QL	University of Chicago	University of Chicago
+76050baa-3b3a-4906-8f9b-4f4a2fb6537c	PQ	University of Colorado Denver	University of Colorado Denver
+8cdbe6a1-aeb5-4da3-9bdd-f9b645ad5036	T2	St. University of Colorado Denver	University of Colorado Denver
+0ab39f37-5295-45b0-b1ae-9e55e0b6d32c	DH	University of Florida	University of Florida
+976af1b1-642f-48ba-b71f-3f114e6d1fae	ES	University of Florida	University of Florida
+b3a05df5-46e8-49ae-b18a-e051c01537ed	26	University of Florida	University of Florida
+36c6cca3-fa35-4e57-b45a-4a4f18ed43fb	FL	University of Hawaii - Normal Study	University of Hawaii
+80a92890-4028-4330-95dc-00b286a36f84	BS	University of Hawaii	University of Hawaii
+fbc462ab-c646-4e14-985c-ba9c23d4a3c4	DR	University of Hawaii	University of Hawaii
+e2f33c31-603c-46e7-86e6-ee41c943c093	X6	University of Iowa	University of Iowa
+47ffaf91-ecdd-41fd-8221-8c6d8404c328	W9	University of Kansas	University of Kansas
+5148573e-3df5-4c14-b1c4-004026c678f0	WL	University of Kansas	University of Kansas
+ab71658e-c5ee-4340-a4e9-74cc242234cd	XJ	University of Kansas	University of Kansas
+076790ff-2391-404f-891c-ea5502ce9760	3M	University of Kansas Medical Center	University of Kansas
+19ac12fd-6ead-4c8f-a0e9-7fdd0b8379a2	WR	University of Kansas	University of Kansas
+53268b80-e8ae-46e4-a5ad-2e6785e5186a	WT	University of Kansas	University of Kansas
+57ac8abf-8100-47e7-ad6e-03b2f6d169c3	2C	University of Kansas Medical Center	University of Kansas
+6554570c-67e9-4636-9e10-5010b13fa42b	WM	University of Kansas	University of Kansas
+75350829-89e3-41f5-a7be-f1196e07299f	6B	University of Kansas	University of Kansas
+7bd4eeb4-a5f9-49e5-9a52-5bc7cd1ad286	WQ	University of Kansas	University of Kansas
+a0ac3d49-05d6-4593-a5a3-ffbda3aea460	WN	University of Kansas	University of Kansas
+bbbeb295-7556-4048-a940-cab750706f97	WS	University of Kansas	University of Kansas
+bdda1850-6fd7-4715-bb76-b1d9441aaea9	WP	University of Kansas	University of Kansas
+dcc97613-ba22-40c6-8cc4-ca11b3ca0c14	6A	University of Kansas	University of Kansas
+f8134281-b660-4ee0-8a26-ebd430c60c77	2E	University of Kansas Medical Center	University of Kansas
+deec21a0-965d-4209-b892-c5da7622e04a	VD	University of Liverpool	University of Liverpool
+151b910b-c5d2-48ea-ae3e-b9ee3220326c	53	University of Miami	University of Miami
+2216822b-da25-4a6d-8ac7-9d7c0b02c814	IH	University of Miami	University of Miami
+3fb65516-1d6f-4b59-840d-1fbeacf173b5	IM	University of Miami	University of Miami
+75cf8530-f237-4a1b-940a-925bf8d8c278	EW	University of Miami	University of Miami
+8a44c5f8-cd1f-41ad-8f1f-c5e9f95b3ca7	KJ	University of Miami	University of Miami
+8aed98b5-9c65-47c8-b081-ec57f57f2447	MW	University of Miami	University of Miami
+b60d8a6e-b63e-456a-b5ae-f83d49383037	52	University of Miami	University of Miami
+c62eb08f-09bd-43ce-b553-1c4ed079a692	IQ	University of Miami	University of Miami
+1274cb9d-7de9-4e80-b938-647d4badceeb	VC	University of Miami	University of Miami
+1343b756-667f-4d9e-b058-2669541279d2	NE	University of Miami	University of Miami
+62490cc1-0f23-42c8-839a-f8d794219d06	4W	University of Miami	University of Miami
+6ee8de77-16fa-4567-a605-9f7629c6c5aa	5D	University of Miami	University of Miami
+b272e295-883a-45d3-b596-9593716e32c5	L8	University of Miami	University of Miami
+9db3028f-7827-43a5-8329-d87ace729828	L5	University of Michigan	University of Michigan
+c924321a-bba8-490f-8bf8-590265a97865	OR	University of Michigan	University of Michigan
+0bfa81e7-237e-4f6b-bdd3-055ebe1fc140	MS	University of Minnesota	University of Minnesota
+0fadbda0-80d3-45d6-bbe9-686e6cb47143	MT	University of Minnesota	University of Minnesota
+1b3acea8-b43d-4c3f-b4c9-9f5beb79883f	XA	University of Minnesota	University of Minnesota
+4c3776cc-ae8d-4f65-986d-76542559dd58	MR	University of Minnesota	University of Minnesota
+5e50e343-5ce9-4a11-8f86-4276660754ce	PA	University of Minnesota	University of Minnesota
+854564de-fc68-4386-a2b0-f812ecbcfc7b	RX	University of Minnesota	University of Minnesota
+898fe033-23c3-4797-9b3b-1e016d03cf3e	MV	University of Minnesota	University of Minnesota
+944560b3-3403-4833-9b96-9e031080ab11	MB	University of Minnesota	University of Minnesota
+ae78fe40-7bec-4411-a6b2-c1bc2e27e9dd	MU	University of Minnesota	University of Minnesota
+f2436b73-de0b-4b0a-9a5e-837508ab1a24	MF	University of Minnesota	University of Minnesota
+1d74aeea-abaf-4087-b2dd-8c2381d9536b	S1	University of Minnesota	University of Minnesota
+371e93da-ebe4-4cfa-87ad-e9fbff42b020	PB	University of Minnesota	University of Minnesota
+67bac4ea-d0e3-4ded-9c4d-5a3ce789833e	MC	University of Minnesota	University of Minnesota
+83dd6556-6976-40e8-b9ae-848f67ba8c2d	P1	University of Minnesota	University of Minnesota
+87243bd3-083b-4b21-b052-83fe95c37136	P9	University of Minnesota	University of Minnesota
+c79e54ec-75e9-49b2-8ff5-5e4b78d81d06	SO	University of Minnesota	University of Minnesota
+c953df5e-8f44-4a24-9624-585d67c5d64b	MD	University of Minnesota	University of Minnesota
+ef048537-f8d1-4725-b73e-b4823ab0faa4	ME	University of Minnesota	University of Minnesota
+51bf166b-8272-48fe-8d4a-19d79fcb1551	2W	University of New Mexico	University of New Mexico
+53760033-731b-4fe9-af66-71fbcede3da7	3R	University of New Mexico	University of New Mexico
+56d590d4-15d4-4846-aedb-d264bac343eb	ZK	University of New Mexico	University of New Mexico
+6ff36512-46d7-4f68-b208-c4101eb4f603	3S	University of New Mexico	University of New Mexico
+9d1d8659-83d5-4232-8913-62fdf634ee02	Y3	University of New Mexico	University of New Mexico
+057560b2-808b-4b31-8955-f0042e0af021	S5	University of Oklahoma HSC	University of Oklahoma HSC
+8ca5fe58-dea5-4c59-aaa1-6c4da892d78c	Q1	University of Oklahoma HSC	University of Oklahoma HSC
+9fd5e140-4958-454b-a884-e61e105692c0	QM	University of Oklahoma HSC	University of Oklahoma HSC
+b7c065dc-184d-4d36-a424-69ef889c256a	Q2	University of Oklahoma HSC	University of Oklahoma HSC
+fb04c4ab-359f-4257-abec-03e8357c5e83	Q3	University of Oklahoma HSC	University of Oklahoma HSC
+5dc04fb2-b706-4425-9fb9-1f301c5949da	6D	University of Oklahoma HSC	University of Oklahoma HSC
+62e6f570-9089-4f0b-847b-92d0a204477b	UX	University of Oklahoma HSC	University of Oklahoma HSC
+d16bd070-29a4-4435-9061-01c240801394	TS	University of Pennsylvania	University of Pennsylvania
+fb4a4cb8-0cdf-4a20-bddc-a40d0af8ce3a	TT	University of Pennsylvania	University of Pennsylvania
+c78885f7-20b9-4130-97a3-5e5cae131751	VF	University of Pennsylvania	University of Pennsylvania
+01e39a72-2b43-4303-91e1-9d6b775e29af	50	University of Pittsburgh	University of Pittsburgh
+0540b2d8-6617-4bea-9323-2492f969f9ab	BT	University of Pittsburgh	University of Pittsburgh
+0e6d2b3e-df03-4119-995f-3d89fa8e3aa8	LK	University of Pittsburgh	University of Pittsburgh
+148cc0fd-0738-4e8a-a5e6-b5c2bc7ae662	CN	University of Pittsburgh	University of Pittsburgh
+19c562c6-572f-4f17-957d-f721ff241a92	ER	University of Pittsburgh	University of Pittsburgh
+1c987a1d-34bc-4994-9ee7-75de3c6b2e38	34	University of Pittsburgh	University of Pittsburgh
+26c6c450-7cf3-4c7a-ad06-5cb53a7ee4ff	N6	University of Pittsburgh	University of Pittsburgh
+33a2c77d-871e-4d5a-b3dd-88d71e978b1b	BH	University of Pittsburgh	University of Pittsburgh
+3f72b406-f339-47f4-a014-a655d9fe41fa	K1	University of Pittsburgh	University of Pittsburgh
+606bb9eb-a46a-4cf3-908b-11433517ecdf	61	University of Pittsburgh	University of Pittsburgh
+62084c7c-6698-425c-bb38-be334afe6a1c	BJ	University of Pittsburgh	University of Pittsburgh
+73a63fd6-3cfc-4b51-a8e7-6d32be7b454f	BD	University of Pittsburgh	University of Pittsburgh
+98bc9466-d54f-47ad-b506-24c1d0d3c2ac	IN	University of Pittsburgh	University of Pittsburgh
+9ad5a735-b595-4d6e-bc39-b2319e108d8c	FZ	University of Pittsburgh	University of Pittsburgh
+9b3d8225-a151-4be8-b7b7-f8085e2d3231	CI	University of Pittsburgh	University of Pittsburgh
+9b514c2c-55a1-4aba-9607-4f10405d723c	BG	University of Pittsburgh	University of Pittsburgh
+c4b542ad-dae8-4020-831c-308848ab4a1c	B1	University of Pittsburgh	University of Pittsburgh
+d835e185-8ae0-4a45-8199-b00b3d1667c1	EJ	University of Pittsburgh	University of Pittsburgh
+e5b7f985-a3ef-4d05-8f88-6de6ce24630a	BI	University of Pittsburgh	University of Pittsburgh
+e705bcc8-b98a-4178-99cb-e93c917ccf2d	P8	University of Pittsburgh	University of Pittsburgh
+eabbc2d1-8fc5-44b0-be03-9fd5ae509dc9	B0	University of Pittsburgh	University of Pittsburgh
+f5dfd670-a52b-434b-898a-053d6f4f8128	IC	University of Pittsburgh	University of Pittsburgh
+fd1da257-a5c3-41af-ab31-fd8523cd6367	AZ	University of Pittsburgh	University of Pittsburgh
+278f4308-0e36-4d1a-b693-f1e8ce7cb7f0	YF	University of Puerto Rico	University of Puerto Rico
+88c41762-9df7-4164-99f2-e3ac54f1e545	YG	University of Puerto Rico	University of Puerto Rico
+efa77959-c42d-40fc-a063-c3b93f23f1d4	JZ	University of Rochester	University of Rochester
+0ba2b02c-913c-4f45-aa61-5fa483d8f68f	XS	University of Sao Paulo	University of Sao Paulo
+35dbc3f7-9c74-46bc-9deb-682779c0b903	TQ	University of Sao Paulo	University of Sao Paulo
+5b6d5690-d197-40ea-823f-e4b0c14b08cc	XN	University of Sao Paulo	University of Sao Paulo
+bac16655-469e-4443-9754-cb1300f63971	XR	University of Sao Paulo	University of Sao Paulo
+bf6ebe58-bb69-4020-8304-551ea6a1e59e	XP	University of Sao Paulo	University of Sao Paulo
+e05831f4-1a70-4507-ad17-d29ea66dd93f	XQ	University of Sao Paulo	University of Sao Paulo
+a421842e-b273-4fe7-8dbd-e95e1a28e49b	6G	University of Sao Paulo	University of Sao Paulo
+e0c37927-2e1b-443e-9363-ab54e5b1647b	5M	University of Sao Paulo	University of Sao Paulo
+f801bf62-261b-471f-bdb3-c3f88c183e40	5L	University of Sao Paulo	University of Sao Paulo
+4093df90-dc56-4fee-b021-a2bf47b2f399	WA	University of Schleswig-Holstein	University of Schleswig-Holstein
+39c93ed6-fd12-43c6-89cb-9aa46744fb95	3Y	University of Seoul	University of Seoul
+591b622f-daa3-4e54-9a16-1f309a9b5b32	ZF	University of Sheffield	University of Sheffield
+cc393f5d-ad84-4130-b024-632776aa5c78	XF	University of Southern California	University of Southern California
+3d7f9fc0-e52d-45b1-bd80-b938ade00839	6F	University of Southern California	University of Southern California
+572d26a9-601f-47ba-93b6-21185a59d20b	XE	University of Southern California	University of Southern California
+c141e818-d478-48b1-9ce8-6304ba450a0a	6E	University of Southern California	University of Southern California
+309e9f73-b238-41f7-9451-dc38f6ab7a63	EE	University of Sydney	University of Sydney
+01cd6776-53ce-4d9a-a27c-f77127f84399	ZM	University of Ulm	University of Ulm
+d8061c88-75e3-4559-a6ed-e623c9e5d7d5	RC	University of Utah	University of Utah
+a13e9c7c-2d47-468f-a17c-60f41eb02bc6	C7	University of Utah	University of Utah
+d2256d88-ef2a-4abe-84d3-cf146d3f8cc2	UC	University of Washington	University of Washington
+27c18f79-8c7e-45aa-bb01-728d264957a6	X2	University of Washington	University of Washington
+26ca400b-edb1-4af9-8a62-0411e9168588	ZL	Valley Hospital	Valley Hospital
+53af20a5-5604-428c-acf4-414da66b1a82	CR	Vanderbilt University	Vanderbilt University
+8d05d379-dd79-412d-9e1d-8601020df2af	VT	Vanderbilt	Vanderbilt University
+025d20b2-6101-44ee-aef6-f4401812144b	U5	Wake Forest University	Wake Forest University
+19cf3bb3-06f5-48b3-a7fd-3977e4b945df	U4	Wake Forest University	Wake Forest University
+1d2ed0e5-c9a4-474f-ba5c-6c0049c1bb57	TW	Wake Forest University	Wake Forest University
+238c60ec-7e28-4852-b5a0-6cb048a9511e	WU	Wake Forest University	Wake Forest University
+3c6b460a-51e2-413f-8090-bc08fecab3c7	U1	Wake Forest University	Wake Forest University
+3e9e087c-29c9-490a-8c60-9a3f2bf70ad1	U8	Wake Forest University	Wake Forest University
+5468beea-98d7-4d5f-a4c4-4f5df13ee49d	TU	Wake Forest University	Wake Forest University
+6516c143-e15c-4ab0-9e03-6b0e04dcb29b	TV	Wake Forest University	Wake Forest University
+a0f10a59-d040-4d15-9183-4d5c74db852e	U6	Wake Forest University	Wake Forest University
+b5283c9a-aef0-4300-bc72-e7dae85e041f	UA	Wake Forest University	Wake Forest University
+b6f8cf6c-18bf-4744-9f75-43f350c8b33d	TY	Wake Forest University	Wake Forest University
+bd9c104e-9412-4bc3-8cc0-1735b8f142e8	U9	Wake Forest University	Wake Forest University
+c57b8eae-5acb-4bc8-ad02-ce8b69d22bdc	5A	Wake Forest University	Wake Forest University
+ca8a241a-6191-431e-b5c3-78fdb2d221de	U2	Wake Forest University	Wake Forest University
+d6265478-b39d-4e4c-b198-5992fc455bc5	TZ	Wake Forest University	Wake Forest University
+dbd7a8a1-81dc-49ed-b93b-e22c52f741be	U7	Wake Forest University	Wake Forest University
+e357e301-89b6-432d-bfe9-e616ad1e1e4d	U3	Wake Forest University	Wake Forest University
+f1efa2d1-27f3-4964-948d-16dd687cfcef	WW	Wake Forest University	Wake Forest University
+f22085be-6f40-4590-a4eb-1e444718657d	TX	Wake Forest University	Wake Forest University
+f7263be2-fb75-4c23-8e75-74f132934798	WV	Wake Forest University	Wake Forest University
+085af883-c154-4e35-9497-954e2bed1b7c	N7	Washington University	Washington University
+20b96ea4-991c-4842-863d-2690802580ce	AB	Washington University	Washington University
+557b826c-41cf-43e2-bda8-b458a656079b	VP	Washington University	Washington University
+974e0e67-3e7d-4c76-b643-5046ea8cc628	17	Washington University	Washington University
+c26daa3c-5481-4edf-91bc-911e5c54f50f	24	Washington University	Washington University
+c30905fb-b1e1-48b1-8a3c-84a568e27ed8	FI	Washington University	Washington University
+d55b3576-38bc-47d0-9737-997fb3e192e2	JX	Washington University	Washington University
+355bb0fa-b418-4779-9842-3ec38d04bf65	AE	Washington University	Washington University
+5b47ba99-8acd-4b27-ac7a-b63e55e322c8	AI	Washington University	Washington University
+cb23d442-165e-45b9-909a-bfe648b80a56	DN	Washington University	Washington University
+65549bcf-8320-4c98-8419-bc45b22bb59e	OZ	Washington University - Aichi	Washington University - Aichi
+d05c3e40-5e99-465f-a62c-a8e29576ceb8	99	Washington University - Alabama	Washington University - Alabama
+f9b014cc-e36c-41e8-a69c-e5ac6fcc94e1	98	Washington University - Alabama	Washington University - Alabama
+3e23cc75-d163-4f0b-86dd-e8bfbf47d6f9	O1	Washington University - CALGB	Washington University - CALGB
+41c50957-3620-473e-89b1-43fcf1e2843e	O2	Washington University - CALGB	Washington University - CALGB
+f5f77836-a603-44a3-a10b-448d12e1e9d0	NC	Washington University - CHUV	Washington University - CHUV
+3e6eae91-d235-4c81-ac45-e18de3c02d87	NB	Washington University - CHUV	Washington University - CHUV
+3d1b74d6-1546-4087-bc9e-58797f120c05	68	Washington University - Cleveland Clinic	Washington University - Cleveland Clinic
+44ab2f5a-1874-42f8-859b-4d077bdf1ab8	69	Washington University - Cleveland Clinic	Washington University - Cleveland Clinic
+334cac64-ae72-4b76-8ec0-56717bbe74bd	NN	Washington University - Cleveland Clinic	Washington University - Cleveland Clinic
+668b2751-aad0-4b65-b139-1d8ee3aa3c90	94	Washington University - Emory	Washington University - Emory
+b730ff03-27df-4473-a606-cd1ea22e1375	95	Washington University - Emory	Washington University - Emory
+a9be0d10-4cce-4dce-879d-d510490c2df1	MP	Washington University - Mayo Clinic	Washington University - Mayo Clinic
+86552e69-a5a4-44d2-abf5-c1f3ccb6154a	97	Washington University - NYU	Washington University - NYU
+f0af8fc5-7735-443f-805f-ba1038517681	96	Washington University - NYU	Washington University - NYU
+f33d86b4-4484-495d-8f4d-f31da95ca8b6	MQ	Washington University - NYU	Washington University - NYU
+26f3ec56-acf9-49e3-83f2-cce376b2a3fa	NK	Washington University - Rush University	Washington University - Rush University
+d9df6960-70ac-483f-a58d-2cc2037d8b08	NJ	Washington University - Rush University	Washington University - Rush University
+4b20c287-9324-44f0-91eb-2055c0dd72ac	93	Washington University - St. Louis	Washington University - St. Louis
+5e0c63dc-75bf-485f-bb8e-d75f1776ebab	92	Washington University - St. Louis	Washington University - St. Louis
+b40b013a-68bf-46e9-88a2-b7221868bae0	SI	Washington University St. Louis	Washington University - St. Louis
+203bcfba-4699-4c3f-9dce-c19445e1db06	RZ	Wills Eye Institute	Wills Eye Institute
+ca9777a4-f468-4df5-bfa1-f71076012f1a	DA	Yale	Yale University
+8a0dc77b-633a-4b8b-8e23-476b690b0844	WX	Yale University	Yale University
+94d464f4-93c3-4821-bab0-aa477a73749d	4X	Yale University	Yale University
+0bb9b3fe-09a3-455c-9b0d-d495c7fdadb5	P3	Fred Hutchinson	Fred Hutchinson
+233ae8d9-8367-4bdb-ac5f-2ecc96a45639	SU	Global Bioclinical-Moldova	Global BioClinical - Moldova
+7983e25c-1b38-48da-9829-bf767f89703a	SW	Global Bioclinical-Moldova	Global BioClinical - Moldova
+20ef3796-1d08-46fa-ac15-f8b7b28e67dc	ST	Global Bioclinical-Moldova	Global BioClinical - Moldova
+62ba2508-761d-49ec-a927-42aa2ca89bd2	SV	Global Bioclinical-Moldova	Global BioClinical - Moldova
+d80e2a16-a029-485a-8d4d-7dd94052a35c	TR	Global Bioclinical-Moldova	Global BioClinical - Moldova
+75b4564c-cfb0-4612-bfa2-90ae9ea7c492	62	Thoraxklinik at University Hospital Heidelberg	University of Heidelberg
+de82a226-95dd-4cd7-b5ce-b0b472a8aad9	S9	Dept of Neurosurgery at University of Heidelberg	University of Heidelberg
+f32c87ae-df3d-4816-b0c5-2de8ba2b30dd	58	Thoraxklinik at University Hospital Heidelberg	University of Heidelberg
+3d87aca0-5252-4cef-a118-50563247939b	ZB	Thoraxklinik	University of Heidelberg
+d529b834-7eb4-42ad-996c-56e43256909a	TM	The University of New South Wales	University of New South Wales
+04164adf-967c-460e-a4cf-db7e91bf50a6	UU	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+2ac399b6-5dd0-4662-a4df-9f8f93407dea	4N	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+39d5d170-b5e6-4665-b9ff-748495d5dfe0	4A	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+47724d24-4e0e-4cf6-adc2-85a9df725f81	3Z	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+4c940bd5-8465-4bf8-a9d3-70a8b4a65a1a	4M	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+b9f6c715-4e5a-4372-be04-3bcf09e492d7	4B	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+d51dfaf0-6ca5-4d0a-bfc3-13bc40ec324f	4C	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+e9a7827d-915b-412e-9107-4097ea068ed9	5Y	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+f67dbae3-1dc6-44d2-a0ce-193d10a96da0	5Z	Mary Bird Perkins Cancer Center - Our Lady of the Lake	Mary Bird Perkins Cancer Center
+7e1dfad5-8255-4821-b95c-66ae34cb426a	OT	National Cancer Institute	NCI
+fcd0b6ab-a083-443c-a8f3-99a3e2aba3fb	ZJ	NCI HRE Branch	NCI
+e0daacd0-f236-4209-926c-9e4cf2f63ca4	WE	Norfolk and Norwich Hospital	Norfolk and Norwich Hospital
+79cc4ca8-a03f-4b74-b595-6e35dd510b19	Z3	UCLA	University of California, Los Angeles
+606a72d8-3335-408e-a2b9-8d823547df34	ZC	University of Mannheim	University of Mannheim
+debd1aa6-63b9-45f1-af94-51bab65b8d10	UD	University of Western Australia	University of Western Australia
+9800db0a-f884-40c9-be5c-f09de6f847c9	GR	University of Nebraska Medical Center (UNMC)	University of Nebraska
+\.
+
+--
+-- Name: bc_uuid_pk; Type: CONSTRAINT; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+ALTER TABLE ONLY tcga_bc_uuid
+    ADD CONSTRAINT bc_uuid_pk PRIMARY KEY (tcga_uuid);
+
+
+--
+-- Name: tcga_file_pk; Type: CONSTRAINT; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+ALTER TABLE ONLY tcga_file
+    ADD CONSTRAINT tcga_file_pk PRIMARY KEY (tcgafilename, fullarchname);
+
+
+--
+-- Name: tcgaarch_pk; Type: CONSTRAINT; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+ALTER TABLE ONLY tcga_archive
+    ADD CONSTRAINT tcgaarch_pk PRIMARY KEY (fullarchname);
+
+
+--
+-- Name: center_links_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX center_links_uuid_index ON center_links USING btree (uuid);
+
+
+--
+-- Name: clin_meta_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX clin_meta_uuid_index ON clin_meta USING btree (uuid);
+
+
+--
+-- Name: datatype_links_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX datatype_links_uuid_index ON datatype_links USING btree (uuid);
+
+
+--
+-- Name: diseasedatatype_pairs_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX diseasedatatype_pairs_uuid_index ON diseasedatatype_pairs USING btree (uuid);
+
+
+--
+-- Name: diseasestudy_links_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX diseasestudy_links_uuid_index ON diseasestudy_links USING btree (uuid);
+
+
+--
+-- Name: idx_pgrr_meta_algorithmname; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_algorithmname ON pgrr_meta USING btree (algorithmname);
+
+
+--
+-- Name: idx_pgrr_meta_algorithmversion; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_algorithmversion ON pgrr_meta USING btree (algorithmversion);
+
+
+--
+-- Name: idx_pgrr_meta_aliquotbarcode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_aliquotbarcode ON pgrr_meta USING btree (aliquotbarcode);
+
+
+--
+-- Name: idx_pgrr_meta_aliquotuuid; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_aliquotuuid ON pgrr_meta USING btree (aliquotuuid);
+
+
+--
+-- Name: idx_pgrr_meta_analysisplatform; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_analysisplatform ON pgrr_meta USING btree (analysisplatform);
+
+
+--
+-- Name: idx_pgrr_meta_analysistype; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_analysistype ON pgrr_meta USING btree (analysistype);
+
+
+--
+-- Name: idx_pgrr_meta_analytecode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_analytecode ON pgrr_meta USING btree (analytecode);
+
+
+--
+-- Name: idx_pgrr_meta_analytedesc; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_analytedesc ON pgrr_meta USING btree (analytedesc);
+
+
+--
+-- Name: idx_pgrr_meta_barcode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_barcode ON pgrr_meta USING btree (barcode);
+
+
+--
+-- Name: idx_pgrr_meta_centercode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_centercode ON pgrr_meta USING btree (centercode);
+
+
+--
+-- Name: idx_pgrr_meta_centername; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_centername ON pgrr_meta USING btree (centername);
+
+
+--
+-- Name: idx_pgrr_meta_datearchived; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_datearchived ON pgrr_meta USING btree (datearchived);
+
+
+--
+-- Name: idx_pgrr_meta_datecreated; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_datecreated ON pgrr_meta USING btree (datecreated);
+
+
+--
+-- Name: idx_pgrr_meta_diseaseabbr; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_diseaseabbr ON pgrr_meta USING btree (diseaseabbr);
+
+
+--
+-- Name: idx_pgrr_meta_fileextension; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_fileextension ON pgrr_meta USING btree (fileextension);
+
+
+--
+-- Name: idx_pgrr_meta_filesizeinbytes; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_filesizeinbytes ON pgrr_meta USING btree (filesizeinbytes);
+
+
+--
+-- Name: idx_pgrr_meta_filetype; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_filetype ON pgrr_meta USING btree (filetype);
+
+
+--
+-- Name: idx_pgrr_meta_fractiontype; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_fractiontype ON pgrr_meta USING btree (fractiontype);
+
+
+--
+-- Name: idx_pgrr_meta_ispublic; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_ispublic ON pgrr_meta USING btree (ispublic);
+
+
+--
+-- Name: idx_pgrr_meta_level; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_level ON pgrr_meta USING btree (level);
+
+
+--
+-- Name: idx_pgrr_meta_md5checksum; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_md5checksum ON pgrr_meta USING btree (md5checksum);
+
+
+--
+-- Name: idx_pgrr_meta_origuuid; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_origuuid ON pgrr_meta USING btree (origuuid);
+
+
+--
+-- Name: idx_pgrr_meta_patientbarcode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_patientbarcode ON pgrr_meta USING btree (patientbarcode);
+
+
+--
+-- Name: idx_pgrr_meta_patientuuid; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_patientuuid ON pgrr_meta USING btree (patientuuid);
+
+
+--
+-- Name: idx_pgrr_meta_pgrrfilename; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_pgrrfilename ON pgrr_meta USING btree (pgrrfilename);
+
+
+--
+-- Name: idx_pgrr_meta_pgrrpath; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_pgrrpath ON pgrr_meta USING btree (pgrrpath);
+
+
+--
+-- Name: idx_pgrr_meta_pgrruuid; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_pgrruuid ON pgrr_meta USING btree (pgrruuid);
+
+
+--
+-- Name: idx_pgrr_meta_project; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_project ON pgrr_meta USING btree (project);
+
+
+--
+-- Name: idx_pgrr_meta_reasonarchived; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_reasonarchived ON pgrr_meta USING btree (reasonarchived);
+
+
+--
+-- Name: idx_pgrr_meta_refgenomename; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_refgenomename ON pgrr_meta USING btree (refgenomename);
+
+
+--
+-- Name: idx_pgrr_meta_refgenomeurl; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_refgenomeurl ON pgrr_meta USING btree (refgenomeurl);
+
+
+--
+-- Name: idx_pgrr_meta_samplebarcode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_samplebarcode ON pgrr_meta USING btree (samplebarcode);
+
+
+--
+-- Name: idx_pgrr_meta_sampletypecode; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_sampletypecode ON pgrr_meta USING btree (sampletypecode);
+
+
+--
+-- Name: idx_pgrr_meta_sampletypedesc; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_sampletypedesc ON pgrr_meta USING btree (sampletypedesc);
+
+
+--
+-- Name: idx_pgrr_meta_sampleuuid; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_sampleuuid ON pgrr_meta USING btree (sampleuuid);
+
+
+--
+-- Name: idx_pgrr_meta_samplevial; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_samplevial ON pgrr_meta USING btree (samplevial);
+
+
+--
+-- Name: idx_pgrr_meta_sequencesource; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_sequencesource ON pgrr_meta USING btree (sequencesource);
+
+
+--
+-- Name: idx_pgrr_meta_tcgaarchivepath; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_tcgaarchivepath ON pgrr_meta USING btree (tcgaarchivepath);
+
+
+--
+-- Name: idx_pgrr_meta_tcgafilename; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_tcgafilename ON pgrr_meta USING btree (tcgafilename);
+
+
+--
+-- Name: idx_pgrr_meta_tssabbr; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_tssabbr ON pgrr_meta USING btree (tssabbr);
+
+
+--
+-- Name: idx_pgrr_meta_tssname; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_tssname ON pgrr_meta USING btree (tssname);
+
+
+--
+-- Name: idx_pgrr_meta_version; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX idx_pgrr_meta_version ON pgrr_meta USING btree (version);
+
+
+--
+-- Name: pgrr_meta_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX pgrr_meta_uuid_index ON pgrr_meta USING btree (uuid);
+
+
+--
+-- Name: protocol_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX protocol_uuid_index ON protocol USING btree (uuid);
+
+
+--
+-- Name: sampletype_links_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX sampletype_links_uuid_index ON sampletype_links USING btree (uuid);
+
+
+--
+-- Name: subscription_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX subscription_uuid_index ON subscription USING btree (uuid);
+
+
+--
+-- Name: tss_links_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX tss_links_uuid_index ON tss_links USING btree (uuid);
+
+
+--
+-- Name: tss_synonyms_uuid_index; Type: INDEX; Schema: public; Owner: <your_role>; Tablespace: 
+--
+
+CREATE INDEX tss_synonyms_uuid_index ON tss_synonyms USING btree (uuid);
+
+
+--
+-- Name: tcgafullarchname_fk; Type: FK CONSTRAINT; Schema: public; Owner: <your_role>
+--
+
+ALTER TABLE ONLY tcga_file
+    ADD CONSTRAINT tcgafullarchname_fk FOREIGN KEY (fullarchname) REFERENCES tcga_archive(fullarchname);
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
