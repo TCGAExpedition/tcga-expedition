@@ -39,7 +39,7 @@ Download Clinical data for acc:
 java -jar tcgaExpedition-1.1.jar acc clinical public
 ```
 
-#Availabe Analysis Types
+#Availabe Analysis / Access Types
 
 <HTML>
 
