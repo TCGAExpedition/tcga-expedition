@@ -8,7 +8,7 @@ Users accessing controlled data will need to have a [dbGAP](http://www.ncbi.nlm.
 
 #System Requirements
 
-Unix 64-bit
+Unix 64-bit. Java 1.7
 
 #Installation
 
