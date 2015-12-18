@@ -25,7 +25,7 @@ Go through resources/tcgaexpedition.conf file and add required fields.
 
 #How to Run
 ```
-Usage: java -jar tcgaExpedition-<v.v>.jar --diseaseList <list> --analysistype <string> --accesstype <string>
+Usage: java -jar tcgaExpedition-<v.x.x>.jar --diseaseList <list> --analysistype <string> --accesstype <string>
 ================================================================================
 --diseaseList           Comma separated list of disease abbreviations. Use ALL for the whole data set.
 --analysistype          See table below for available analysis types based on the data source.
@@ -36,7 +36,7 @@ Usage: java -jar tcgaExpedition-<v.v>.jar --diseaseList <list> --analysistype <s
 
 Download Clinical data for acc:
 ```bash
-java -jar tcgaExpedition-x.x.x.jar acc clinical public
+java -jar tcgaExpedition-<v.x.x>.jar acc clinical public
 ```
 
 #Availabe Analysis / Access Types
