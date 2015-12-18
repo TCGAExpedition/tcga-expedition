@@ -36,7 +36,7 @@ Usage: java -jar tcgaExpedition-<v.v>.jar --diseaseList <list> --analysistype <s
 
 Download Clinical data for acc:
 ```bash
-java -jar tcgaExpedition-1.1.jar acc clinical public
+java -jar tcgaExpedition-x.x.x.jar acc clinical public
 ```
 
 #Availabe Analysis / Access Types
