@@ -1038,13 +1038,13 @@ public class TCGAHelper {
 		
 		switch(sw){
 		case 0:
-			ds = ds / 1024;
+			ds = ds / 1000;
 			break;
 		case 1:
-			ds = ds * 1024;
+			ds = ds * 1000;
 			break;
 		case 2:
-			ds = ds * 1024 * 1024;
+			ds = ds * 1000000;
 			break;
 		default:
             break;
@@ -1129,11 +1129,12 @@ public class TCGAHelper {
 		// now look for the recent ones
 		List<LineBean> toadd = null;
 		List<LineBean> toret = new LinkedList<LineBean>();
+		List<LineBean> mageTabBean = null;
 		for (Map.Entry<String, List<LineBean>> entry : sameArchiveNames.entrySet()) {
 			toadd = recentOnlyExperiment(entry.getValue());
 			
 			if(entry.getKey().indexOf(".mage-tab") != -1)
-				toret.addAll(0, toadd); // set .mage-tab. to be the first in the list
+				mageTabBean = toadd; 
 			else
 				toret.addAll(toadd); // else concatenate to the list
 		}
@@ -1143,6 +1144,11 @@ public class TCGAHelper {
 		}
 		sameArchiveNames.clear();
 		sameArchiveNames = null;
+
+		Collections.sort(toret);	
+		// set .mage-tab. to be the first in the list
+		if(mageTabBean != null)
+			toret.addAll(0, mageTabBean);
 
 		return toret;
 	}

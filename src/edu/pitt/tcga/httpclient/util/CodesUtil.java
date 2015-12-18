@@ -52,66 +52,67 @@ public class CodesUtil {
 		if(exists != null)
 			return exists;
 		
-		String fieldOut = (givenFieldName.equals(BARCODE_STR)) ? UUID_STR:BARCODE_STR;
-		HttpClient httpclient = new DefaultHttpClient();
-		String res = null;
-		InputStream in = null;
-		BufferedReader reader = null;
-		try{
-			//Thread.sleep(REST_TCGA_SLEEP);
-			in = TCGAHelper.getGetResponseInputStream(httpclient, TCGAmappingURL+givenFieldName+"/"+givenFieldValue);
-			
-			if(in == null) return null;
-			
-			reader = new BufferedReader(new InputStreamReader(in));
-			String line = null;
-			StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null) 
-            	sb.append(line+"\n");
-        
-            String sbStr = sb.toString();
-            if(!sbStr.startsWith("{\"validationError\":")){
-            	if(givenFieldName.equals(BARCODE_STR))
-            		res = new JSONObject(new JSONObject(sbStr).getString("uuidMapping")).getString(fieldOut);	
-            	else
-            		res = new JSONObject(sbStr).getString(fieldOut);	
-            	
-            	if(fieldOut.equals(UUID_STR))
-            		res = res.toLowerCase();
-    // System.out.println("CodesUtil.mapping res = "+res);
-            }
-	            
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        
-	        } 
-		/*catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} */
-		catch (JSONException e) {
-				// TODO Auto-generated catch block
-				//e.printStackTrace();
-			} finally {
-	            try {
-	            	if(in != null)
-	            		in.close();
-	            	if(reader != null)
-	            		reader.close();
-	                httpclient.getConnectionManager().shutdown();
-	            } catch (IOException e) {
-	                e.printStackTrace();
-	            }
-	        }
-	if(res != null && !res.equals("")){
-		if(givenFieldName.equals(BARCODE_STR))
-			ModuleUtil.addToOrigBarcodeUUIDMap(givenFieldValue, res);
-		 else
-			ModuleUtil.addToOrigBarcodeUUIDMap(res, givenFieldValue);
+		String res = doMapIt(givenFieldName, givenFieldValue);
 		
-	}
+		if(res != null && !res.equals("")){
+			if(givenFieldName.equals(BARCODE_STR))
+				ModuleUtil.addToOrigBarcodeUUIDMap(givenFieldValue, res);
+			 else
+				ModuleUtil.addToOrigBarcodeUUIDMap(res, givenFieldValue);
+			
+		}
 		return res;
 	}
+	
+	public static String doMapIt(String givenFieldName, String givenFieldValue){			
+				String fieldOut = (givenFieldName.equals(BARCODE_STR)) ? UUID_STR:BARCODE_STR;
+				HttpClient httpclient = new DefaultHttpClient();
+				String res = null;
+				InputStream in = null;
+				BufferedReader reader = null;
+				try{
+					//Thread.sleep(REST_TCGA_SLEEP);
+					in = TCGAHelper.getGetResponseInputStream(httpclient, TCGAmappingURL+givenFieldName+"/"+givenFieldValue);
+					
+					if(in == null) return null;
+					
+					reader = new BufferedReader(new InputStreamReader(in));
+					String line = null;
+					StringBuilder sb = new StringBuilder();
+		            while ((line = reader.readLine()) != null) 
+		            	sb.append(line+"\n");
+		        
+		            String sbStr = sb.toString();
+		            if(!sbStr.startsWith("{\"validationError\":")){
+		            	if(givenFieldName.equals(BARCODE_STR))
+		            		res = new JSONObject(new JSONObject(sbStr).getString("uuidMapping")).getString(fieldOut);	
+		            	else
+		            		res = new JSONObject(sbStr).getString(fieldOut);	
+		            	
+		            	if(fieldOut.equals(UUID_STR))
+		            		res = res.toLowerCase();
+		            }
+			            
+			        } catch (IOException e) {
+			            e.printStackTrace();
+			        
+			        } 
+				catch (JSONException e) {
+						// TODO Auto-generated catch block
+						//e.printStackTrace();
+					} finally {
+			            try {
+			            	if(in != null)
+			            		in.close();
+			            	if(reader != null)
+			            		reader.close();
+			                httpclient.getConnectionManager().shutdown();
+			            } catch (IOException e) {
+			                e.printStackTrace();
+			            }
+			        }
+				return res;
+			}
 	
 	private static int MAX_ATTEMPTS = 3;
 	private static int CURR_ATTEMPT = 0;
@@ -324,7 +325,7 @@ for (Map.Entry<String, String> entry : ModuleUtil.origBarcodeUUIDMap.entrySet())
 		if(sampleUUID == null) 
 			return barcode.substring(15,16).toUpperCase();
 		else
-			ModuleUtil.origBarcodeUUIDMap.put(barcode.substring(0, 16), sampleUUID);
+			ModuleUtil.addToOrigBarcodeUUIDMap(barcode.substring(0, 16), sampleUUID);
 		
 		//get barcode through mapping
 		String toret = mapping(UUID_STR,sampleUUID);

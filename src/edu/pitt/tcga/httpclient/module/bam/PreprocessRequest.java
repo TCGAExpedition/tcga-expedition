@@ -18,11 +18,10 @@ import java.util.Map;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.http.client.HttpClient;
 
+import edu.pitt.tcga.httpclient.correction.DataValidator;
 import edu.pitt.tcga.httpclient.module.ModuleUtil;
 import edu.pitt.tcga.httpclient.storage.StorageFactory;
 import edu.pitt.tcga.httpclient.util.CSVReader;
-import edu.pitt.tcga.httpclient.util.DataMatrix;
-import edu.pitt.tcga.httpclient.util.MySettings;
 import edu.pitt.tcga.httpclient.util.TCGAHelper;
 
 
@@ -48,7 +47,7 @@ public class PreprocessRequest {
 	private String[] newVals = {"","","","","","",""};
 	
 	private final String Q_TEMPLATE ="cgquery \"<disieaseAbbr>=OV&library_strategy=<library_type>\"";
-	private final String latestManifestURL = "https://cghub.ucsc.edu/reports/SUMMARY_STATS/LATEST_MANIFEST.tsv"; 
+	public final static String latestManifestURL = "https://cghub.ucsc.edu/reports/SUMMARY_STATS/LATEST_MANIFEST.tsv"; 
 	
 	
 	/**
@@ -77,7 +76,7 @@ public class PreprocessRequest {
 	 */
 	public void createTSV(String studyName, String diseaseAbbr, String libType){
 
-		String savetToDir = BAMMetadataManager.addSlashAndCreateDirIfNeed("top.bam.tsv.dir", "need_to_download");
+		String savetToDir = BAMMetadataManager.addSlashAndCreateDirIfNeed("top.bam.requests.dir", "need_to_download");
 		
 		String saveToTSV = savetToDir+"bam_status_"+diseaseAbbr.toUpperCase()+"_"+libType+".tsv";
 
@@ -99,11 +98,12 @@ public class PreprocessRequest {
 		int len = newCols.length;
 		String[] newArr = new String[headSz + len];
 		int count = 0;
+		boolean hasData = false;
 		try {
 			while ((readLine = reader.readNext()) != null){
 	if(String.valueOf(count).endsWith("0000"))
 		System.out.println("Processed "+count+" lines");
-	count++;
+		count++;
 				if(isHeader) {
 					isHeader = false;
 					for(String s:existingCols){
@@ -147,18 +147,21 @@ public class PreprocessRequest {
 						}
 						System.arraycopy(newVals, 0, newArr, headSz, len);
 						newData.add(newArr);
+						if(!hasData) hasData = true;
 					}
 				}
 
 		
 			}
 			
-			List<String[]> copy = new ArrayList<String[]>(newData);
-			writeToFile(saveToTSV, newData);
+			if(hasData) {
+			 //List<String[]> copy = new ArrayList<String[]>(newData);
+				writeToFile(saveToTSV, newData);
+			}
 			
-	for (Map.Entry<String, String> entry : deleteID_ReasonMap.entrySet()) {
-		System.out.println("*** NEED to Delete origuuid: "+entry.getKey()+"    reason: "+entry.getValue());
-	}			
+			//archive if needed
+			DataValidator.archiveBAMFiles(deleteID_ReasonMap);
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -214,24 +217,34 @@ public class PreprocessRequest {
 
 	public static void main(String[] args) {
 		//test
-		/*
-		 * args = new String[3]; args[0] = "TCGA"; args[1] = "luad"; args[2] =
-		 * "Bisulfite-Seq";
-		 */
+		/*args = new String[3]; args[0] = "TCGA"; 
+		args[1] = "read,stad";
+		args[2] ="Bisulfite-Seq";*/
+		 
 		
 		
-		if(args.length != 4){
-			System.out.println("edu.pitt.tcga.httpclient.module.bam.PreprocessRequest requires 4 arguments:\n" +
+		if(args.length != 3){
+			System.out.println("**********\n" +
+					"* USAGE: * \n" +
+					"**********\n"+
+					"edu.pitt.tcga.httpclient.module.bam.PreprocessRequest requires 3 arguments:\n" +
 					"(1) study name ('TCGA')\n" +
-					"(2) disease abbreviation ('brca')\n" +
-					"(3) library type ('WGS')."); 
+					"(2) comma seperated list of disease abbreviations ('luad,lusc')\n" +
+					"(3) comma seperated list of library types ('WGS,WXS')."); 
 			System.exit(0);
 		}
 		else {
-			PreprocessRequest pp = new PreprocessRequest(args[0], args[1],args[2]);
+			String[] disList = args[1].split(",");
+			String[] libList = args[2].split(",");
+			for(String disAbbr:disList){
+				for(String lib:libList) {
+		System.out.println("Starting dis: "+disAbbr+" lib: "+lib);
+					PreprocessRequest pp = new PreprocessRequest(args[0], disAbbr.trim(),lib.trim());
+				}
+			}
 		}
 		
-		System.out.println("DONE createTSV");
+		System.out.println("DONE create TSV");
 	}
 
 }

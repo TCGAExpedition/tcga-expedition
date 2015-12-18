@@ -175,6 +175,7 @@ public class MySettings {
 		
 		
 		public static String PGRR_META_NQ_FILE = "_start_from_LAML__MAF_protectred.nq";
+		public static String TCGA_BC_UUID_NQ_FILE = "_tcga_bc_uuid.nq";
 		public static final String CLIN_META_NQ_FILE = "_upload_clin_metaWithURL.nq";
 		public static  String LOG_UPDATE_FILE = "_modifyDiseaseDataTypePairs.txt";
 		
@@ -192,6 +193,7 @@ public class MySettings {
 		// RDF store Graph names 
 		//public static String CLIN_META_GRAPH = "clin-meta";
 		public static String PGRR_META_GRAPH = "pgrr-meta";
+		public static String TCGA_BC_UUID_GRAPH = "tcga-bc-uuid";
 		
 		//--- use serialized lists/maps for frank job
 		//public static boolean RUN_AS_JOB = true;

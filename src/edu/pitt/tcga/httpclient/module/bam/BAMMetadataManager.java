@@ -2,10 +2,8 @@ package edu.pitt.tcga.httpclient.module.bam;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -14,7 +12,7 @@ import edu.pitt.tcga.httpclient.log.ErrorLog;
 import edu.pitt.tcga.httpclient.module.Aliquot;
 import edu.pitt.tcga.httpclient.module.ModuleUtil;
 import edu.pitt.tcga.httpclient.module.TCGAModule;
-import edu.pitt.tcga.httpclient.transfer.LocalShell;
+import edu.pitt.tcga.httpclient.storage.Storage;
 import edu.pitt.tcga.httpclient.transfer.Transfer;
 import edu.pitt.tcga.httpclient.util.CodesUtil;
 import edu.pitt.tcga.httpclient.util.DataMatrix;
@@ -48,8 +46,8 @@ public class BAMMetadataManager {
 	public BAMMetadataManager() {
 	}
 	
-	public static String addSlashAndCreateDirIfNeed(String propName, String subDirName){
-		String dirName = MySettings.getStrProperty(propName);
+	public static String addSlashAndCreateDirIfNeed(String pName, String subDirName){
+		String dirName = MySettings.getStrProperty(pName);
 		if(!dirName.endsWith("/"))
 			dirName = dirName+"/";
 		if(subDirName != null)
@@ -67,7 +65,7 @@ public class BAMMetadataManager {
 	public void postProcess() {
 		List<File> finishedFileList = new ArrayList<File>();
 		scanFinishedDir(
-				new File(addSlashAndCreateDirIfNeed("top.bam.tsv.dir", "finished_downloads")),
+				new File(addSlashAndCreateDirIfNeed("top.bam.requests.dir","finished_downloads")),
 				finishedFileList);
 
 		for (File f : finishedFileList) {
@@ -173,6 +171,10 @@ public class BAMMetadataManager {
 	 *            from getSuffix (eg. GBM_miRNA-Seq)
 	 */
 	public void createMetadata(String filePath, String nqSuff) {
+		// for old approach 
+		Storage.UPDATE_IN_REAL_TIME = false;
+		ModuleUtil.SAVE_METADATA = true;
+		
 		File logUpdate = new File(MySettings.LOG_DIR + "progressMetaData_"
 				+ nqSuff + "_txt");
 
@@ -243,7 +245,6 @@ public class BAMMetadataManager {
 								+ MySettings.getDayFormat()
 								+ "_errorsBAMPostProcess.txt");
 						ErrorLog.log(recordError, errFile);
-						System.err.println(recordError);
 					}
 
 				} else if (row[statusCol] == null || row[statusCol].equals("")
@@ -265,7 +266,7 @@ public class BAMMetadataManager {
 					al.setTCGAFileName(row[fileNameCol]);
 
 					al.setBarcode(row[bcCol]);
-					al.setOrigUUID(row[aliquotIDCol]);
+					al.setOrigUUID(row[ownIDCol]); // use analysis_id as original uuid
 					al.setFileFractionType("aliquot");
 					al.setLevel("1");
 					al.setDataAccessType(TCGAModule.CONTROLLED);
@@ -280,6 +281,7 @@ public class BAMMetadataManager {
 					if (genURL == null)
 						ErrorLog.log("BAMMetadataManager: NO refGenome URL for "
 								+ row[refGCol]);
+					
 					else
 						al.setRefGenomeSource(genURL);
 					al.setPlatform(row[platformCol]);
@@ -344,7 +346,7 @@ public class BAMMetadataManager {
 		MySettings.PGRR_META_NQ_FILE = buf_nq_file;
 
 		// save file dm
-		String doneFileDir = addSlashAndCreateDirIfNeed("top.bam.tsv.dir", "done");
+		String doneFileDir = addSlashAndCreateDirIfNeed("top.bam.requests.dir", "done");
 
 		String newFilePath = doneFileDir + donePrefix + "_bam_status_" + nqSuff
 				+ ".tsv";

@@ -25,6 +25,8 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import edu.pitt.tcga.httpclient.correction.MetadataHelper;
 import edu.pitt.tcga.httpclient.exception.QueryException;
@@ -36,6 +38,7 @@ import edu.pitt.tcga.httpclient.transfer.LocalShell;
 import edu.pitt.tcga.httpclient.transfer.Transfer;
 import edu.pitt.tcga.httpclient.util.CodesUtil;
 import edu.pitt.tcga.httpclient.util.PGRRFileVersionHelper;
+import edu.pitt.tcga.httpclient.util.QueryHelper;
 import edu.pitt.tcga.httpclient.util.MySettings;
 
 public class ModuleUtil {
@@ -43,7 +46,7 @@ public class ModuleUtil {
 	// repository directory
 	// and contain the same info as in pgrr_meta table (Postgres) or pgrr-meta
 	// graph (Virtuoso)
-	public static boolean SAVE_METADATA = false;
+	public static boolean SAVE_METADATA = true;
 
 	// <FileName, current portion>
 	public static Map<String, Integer> existingFiles = new HashMap<String, Integer>();
@@ -81,7 +84,9 @@ public class ModuleUtil {
 	public static Transfer transfer = new LocalShell();
 
 	public static Map<String, String> origBarcodeUUIDMap = StorageFactory
-			.getStorage().getClinBarcodeUUID();
+			.getStorage().getMap(StorageFactory
+					.getStorage().getStrProperty("TCGA_BARCODE_UUID_Q"), "tcgabarcode", "tcgauuid");
+	
 	public static List<String> currentArchives = StorageFactory.getStorage()
 			.resultAsStrList(
 					StorageFactory.getStorage().getStrProperty(
@@ -147,7 +152,7 @@ public class ModuleUtil {
 			// System.out.println("  @@@ ModuleUtil.getUUIDByBarcode GOING to mapping barcode: "+barcode);
 			uuid = CodesUtil.mapping(CodesUtil.BARCODE_STR, barcode);
 			if (uuid != null) {
-				origBarcodeUUIDMap.put(barcode, uuid.toLowerCase());
+				addToOrigBarcodeUUIDMap(barcode, uuid.toLowerCase());
 			} else
 				ErrorLog.log("NO UUID for barcode=" + barcode);
 		}
@@ -155,9 +160,47 @@ public class ModuleUtil {
 	}
 
 	public static void addToOrigBarcodeUUIDMap(String barcode, String uuid) {
-		// System.out.println("## ModuleUtil.addToOrigBarcodeUUIDMap  barcode: "+barcode+"  uuid: "+uuid);
-		origBarcodeUUIDMap.put(barcode, uuid.toLowerCase());
-		// System.out.println("## ModuleUtil.addToOrigBarcodeUUIDMap DONE");
+		if(barcode != null && !barcode.equals("") && uuid != null 
+				&& !uuid.equals("") && !origBarcodeUUIDMap.containsKey(barcode) && !origBarcodeUUIDMap.containsValue(uuid)){
+			origBarcodeUUIDMap.put(barcode, uuid.toLowerCase());
+	
+			// write to storage
+			//Storage storage = StorageFactory.getStorage();
+			Storage storage = VirtuosoStorage.getInstace();
+			String g = storage.nameWithPrefixPorG(MySettings.PGRR_PREFIX_URI,
+					MySettings.TCGA_BC_UUID_GRAPH);
+			String subj = storage.nameWithPrefixUUID(
+					MySettings.PGRR_PREFIX_URI, uuid);
+			String p = storage.nameWithPrefixPorG(MySettings.PGRR_PREFIX_URI,
+					"tcgaBarcode");
+			String obj = storage.literal(barcode);
+			
+			String toWrite = subj + " " + p + " " + obj + " " + g + " .";
+			if(Storage.UPDATE_IN_REAL_TIME) {
+				writeToStorage(toWrite);
+				/*try {
+					storage.insert(subj, p, obj, g);
+				} catch (QueryException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}*/
+			} else{
+				String fileName = MySettings.NQ_UPLOAD_DIR + MySettings.getDayFormat()
+				+ MySettings.TCGA_BC_UUID_NQ_FILE;
+				PrintWriter writer = null;
+				try {
+					writer = new PrintWriter(new FileWriter(fileName,
+							true));
+					writer.println(toWrite);
+					writer.close();
+					writer = null;
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+		}
 	}
 
 	/*
@@ -219,13 +262,13 @@ public class ModuleUtil {
 	public static void archiveMetadata(String metadataDir,
 			String pgrrUUIDColName, String pgrrUUIDVal, String reasonArchived,
 			String timeStampStr) {
+		if(!SAVE_METADATA) return;
+		
 		// pgrrUUIDVal might be like
 		// http://purl.org/pgrr/core#0787fbc2-76f8-417c-bb6a-089395c5d956
 		if (pgrrUUIDVal.startsWith(MySettings.PGRR_PREFIX_URI))
 			pgrrUUIDVal = pgrrUUIDVal.substring(MySettings.PGRR_PREFIX_URI
 					.length());
-
-		if (SAVE_METADATA)
 			MetadataHelper.correctMetadata(metadataDir, new String[] {
 					pgrrUUIDColName, pgrrUUIDColName }, new String[] {
 					pgrrUUIDVal, pgrrUUIDVal }, new String[] { "dateArchived",
@@ -247,7 +290,7 @@ public class ModuleUtil {
 		}
 	}
 
-	private static void writeNQArchive(String pgrrUUID, String reasonArchived,
+	public static void writeNQArchive(String pgrrUUID, String reasonArchived,
 			String timeStampStr) {
 
 		String fileName = MySettings.NQ_UPLOAD_DIR + MySettings.getDayFormat()
@@ -255,7 +298,7 @@ public class ModuleUtil {
 
 		// use here the default storage, since upload to DB is done through the
 		// tempo table which handles NQ RDFrepresentation
-		String toWrite = "";
+		
 		Storage storage = VirtuosoStorage.getInstace();
 
 		String g = storage.nameWithPrefixPorG(MySettings.PGRR_PREFIX_URI,
@@ -265,21 +308,20 @@ public class ModuleUtil {
 		String p = storage.nameWithPrefixPorG(MySettings.PGRR_PREFIX_URI,
 				"dateArchived");
 
-		String archDate = formatIfTime(timeStampStr);
+		String archDate = formatIfTime(timeStampStr, storage);
 
 		String pR = storage.nameWithPrefixPorG(MySettings.PGRR_PREFIX_URI,
 				"reasonArchived");
-		toWrite = subj + " " + p + " " + archDate + " " + g + " .";
+		String toWriteDate = subj + " " + p + " " + archDate + " " + g + " .";
+		String toWriteReason =  subj + " " + pR +  " " +storage.literal(reasonArchived) + " " + g
+				+ " .";
 
 		try {
 			if (!Storage.UPDATE_IN_REAL_TIME) {
 				PrintWriter writer = new PrintWriter(new FileWriter(fileName,
 						true));
-				writer.println(toWrite);
-				toWrite = subj + " " + pR + " \"" + reasonArchived + "\" " + g
-						+ " .";
-				writer.println(toWrite);
-				writeToStorage(toWrite);
+				writer.println(toWriteDate);
+				writer.println(toWriteReason);
 
 				writer.close();
 				writer = null;
@@ -288,7 +330,8 @@ public class ModuleUtil {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		writeToStorage(toWrite);
+		writeToStorage(toWriteDate);
+		writeToStorage(toWriteReason);
 
 	}
 
@@ -415,7 +458,7 @@ public class ModuleUtil {
 						predicates[i]);
 				o = null;
 				if ((values[i] != null && !values[i].equals(""))) {
-					o = formatIfTime(values[i]);
+					o = formatIfTime(values[i], storage);
 					if (o != null) {
 						toWrite = subj + " " + p + " " + o + " " + g + " .";
 						if (!Storage.UPDATE_IN_REAL_TIME)
@@ -431,8 +474,8 @@ public class ModuleUtil {
 				toWrite = subj
 						+ " "
 						+ storage.nameWithPrefixPorG(
-								MySettings.PGRR_PREFIX_URI, "sequencesource")
-						+ " \"" + alq.getSequenceSource() + "\" " + g + " .";
+								MySettings.PGRR_PREFIX_URI, "sequencesource")+ " "
+						+ storage.literal(alq.getSequenceSource()) + " " + g + " .";
 				if (!Storage.UPDATE_IN_REAL_TIME)
 					writer.println(toWrite);
 				writeToStorage(toWrite);
@@ -471,7 +514,7 @@ public class ModuleUtil {
 	 *         "2015-05-11 16:59:53"^^<http
 	 *         ://www.w3.org/2001/XMLSchema#dateTime>";
 	 */
-	private static String formatIfTime(String object) {
+	private static String formatIfTime(String object, Storage storage) {
 		if (object == null)
 			return null;
 
@@ -485,9 +528,7 @@ public class ModuleUtil {
 			Date date = sdf.parse(localObj);
 
 		} catch (ParseException e) {
-			object = "\"" + object + "\"";
-			// e.printStackTrace();
-			return object;
+			return storage.literal(object);
 		}
 
 		object = "\"" + object

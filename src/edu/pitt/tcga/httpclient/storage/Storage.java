@@ -14,13 +14,14 @@ import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 
 import edu.pitt.tcga.httpclient.exception.QueryException;
+import edu.pitt.tcga.httpclient.log.ErrorLog;
 import edu.pitt.tcga.httpclient.util.MySettings;
 
 public abstract class Storage {
 	private  Properties params = null;
 	private static SimpleDateFormat df = null ;
-	//public static boolean UPDATE_IN_REAL_TIME = MySettings.getBooleanProperty("update.storage.realtime");
-	public static boolean UPDATE_IN_REAL_TIME = true;
+
+	public static boolean UPDATE_IN_REAL_TIME = false;
 	public static boolean CHECKED_STORAGE_EXISTS = false;
 	
 	protected File updateLogFile = null;
@@ -66,12 +67,11 @@ public abstract class Storage {
 	public abstract List<String[]> resultAsList(String query, String[] fieldNames);
 	public abstract List<String> resultAsStrList(String query, String fieldName);
 	public abstract Map<String, String> getMap(String query, String keyName, String valName);
-	// - LOGGING
+	public abstract Map<String, Map<String, String>> getMapOfMap(String query, String topKey, String innerKey, String innerValue);
 	
 		
 	// QUERIES
 	public abstract String fieldValueByUUID(String uuid, String field);
-	public abstract Map<String, String> getClinBarcodeUUID();
 	
 	
 	
@@ -79,7 +79,17 @@ public abstract class Storage {
 	
 	
 	public  String getStrProperty(String pName){
-		return params.getProperty(pName);
+		try{
+		 return params.getProperty(pName).trim();
+		} catch (NullPointerException e) {
+			String stName = MySettings.getStrProperty("storage.name");
+			if(stName.equalsIgnoreCase("virtuoso"))
+				stName = "virt";
+			String err = " CAN'T find parameter value for '"+pName+"' . Check your "+stName+"_queries.conf settings.";
+			System.err.println(err);
+			ErrorLog.logFatal(err);
+			return null;
+		}
 	}
 	
 	/**

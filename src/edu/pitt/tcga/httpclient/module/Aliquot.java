@@ -860,7 +860,7 @@ public class Aliquot {
 		metadata[28] = (hasOrigBarcode)?getOwnUUID(barcode, origUUID).toLowerCase():"";
 		//special case add temporal barcode-uuid for *4.0-nte
 		if(fileFractionType.equals("follow-up-v4.0"))
-			ModuleUtil.origBarcodeUUIDMap.put(barcode, metadata[28].toLowerCase());
+			ModuleUtil.addToOrigBarcodeUUIDMap(barcode, metadata[28].toLowerCase());
 		metadata[29] = ModuleUtil.getUUIDByBarcode(getPatientBarcode()).toLowerCase();
 		metadata[30] = (!fractionWithNoSampleBC.contains(fileFractionType)  && fileFractionType.indexOf("follow") == -1)? 
 				ModuleUtil.getUUIDByBarcode(CodesUtil.getFullSampleBarcode(barcode)).toLowerCase():"";

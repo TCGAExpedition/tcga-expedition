@@ -47,7 +47,7 @@ public class LineBean implements Comparable<LineBean> {
 	}
 	
 	public String getLevel(){
-		int stInd = fullURL.indexOf("Level_");
+		int stInd = fullURL.toLowerCase().indexOf("level_");
 		if(stInd == -1) return null;
 		return fullURL.substring(stInd+6, fullURL.indexOf(".", stInd+1));
 	}

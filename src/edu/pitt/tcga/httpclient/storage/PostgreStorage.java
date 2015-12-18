@@ -132,7 +132,7 @@ public class PostgreStorage extends Storage {
 			    
 			    String pgpassPath = System.getProperty("user.home")+"/.pgpass";
     			//make sure: host:5432:*:username:mypass in ~/.ppass
-    			addAbsentLine(host+":"+port+":*:"+USER+":"+PASS, new File(pgpassPath));
+    			addAbsentLineToPgpass(host+":"+port+":*:"+USER+":"+PASS, new File(pgpassPath));
     			// change its mod to chmod 600 ~/.pgpass
     			Transfer.execBash("chmod 600 "+pgpassPath, false);
     			
@@ -166,7 +166,7 @@ public class PostgreStorage extends Storage {
     	
 	}
 	
-	private void addAbsentLine(String toAdd, File f){
+	private void addAbsentLineToPgpass(String toAdd, File f){
 		BufferedReader br = null;
 		PrintWriter writer = null;
 		boolean found = false;	 
@@ -342,28 +342,6 @@ public class PostgreStorage extends Storage {
         
         return jsonObj; 
 	}
-	
-	@Override 
-	public Map<String, String> getClinBarcodeUUID() {
-    	try{
-			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(getStrProperty("ORIG_CLIN_BARCODE_UUID_Q")));			
-			Map<String, String> map = new  HashMap<String, String>();
-			
-			if(bindings == null) return map;
-
-			for (int i = 0; i < bindings.length(); i++) {
-				JSONObject jsonBin = new JSONObject(bindings.getString(i));
-				map.put(jsonBin.getString("barcode"),jsonBin.getString("origuuid"));		
-			}
-			return map;
-		} catch (JSONException e) {
-			return null;
-		} catch (QueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-	}
 
 	@Override
 	public String nameWithPrefixUUID(String prefix, String value) {
@@ -397,8 +375,9 @@ public class PostgreStorage extends Storage {
 	
 	@Override
 	public List<String[]> resultAsList(String query, String[] fieldNames){
+		List<String[]> toret = new ArrayList<String[]>();
 		try{
-			List<String[]> toret = new ArrayList<String[]>();
+			
 			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));			
 			
 			int len = fieldNames.length;
@@ -416,14 +395,13 @@ public class PostgreStorage extends Storage {
 				}
 				toret.add(sArr);
 			}
-			return toret;
+			
 		} catch (JSONException e) {
-			return null;
 		} catch (QueryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
 		}
+		return toret;
 	}
 	
 	@Override
@@ -452,9 +430,9 @@ public class PostgreStorage extends Storage {
 		String ups = UPSERT.replaceAll("<graphName>", g);
 		ups = ups.replaceAll("<col_name>", p);
 		ups = ups.replaceAll("<col_val>", o);
-		ups = ups.replaceAll("<uuid_val>", subj);
-		
+		ups = ups.replaceAll("<uuid_val>", subj);		
 		update(ups);
+		ups = null;
 			
 	}
 
@@ -486,29 +464,60 @@ public class PostgreStorage extends Storage {
 	public Map<String, String> getMap(String query, String keyName, String valName){
 		keyName = formatPorG(keyName);
 		valName = formatPorG(valName);
+		Map<String, String> map = new  HashMap<String, String>();
 		try{
 			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));
-			Map<String, String> map = new  HashMap<String, String>();	
 			if(bindings == null) return map;
 			String id = null;
 			for (int i = 0; i < bindings.length(); i++) {
 				JSONObject jsonBin = new JSONObject(bindings.getString(i));	
 				try{
-					if(jsonBin.getString(keyName) != null & jsonBin.getString(valName) != null){
+					if(jsonBin.getString(keyName) != null && jsonBin.getString(valName) != null){
 						map.put(jsonBin.getString(keyName),	jsonBin.getString(valName));
 					}
 				}catch (JSONException e) {}
 			}
-			return map;
 		} catch (JSONException e) {
 			e.printStackTrace();
-			return null;
 		} catch (QueryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
 		}
+		return map;
 	}
+	
+	@Override
+	public Map<String, Map<String, String>> getMapOfMap(String query, String topKey, String innerKey, String innerValue){
+		topKey = formatPorG(topKey);
+		innerKey = formatPorG(innerKey);
+		innerValue = formatPorG(innerValue);
+		Map<String, Map<String, String>> topMap = new  HashMap<String,  Map<String, String>>();
+		try{
+			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));
+		
+			if(bindings == null) return topMap;
+			String id = null;
+			for (int i = 0; i < bindings.length(); i++) {
+				JSONObject jsonBin = new JSONObject(bindings.getString(i));	
+				try{
+					if(jsonBin.getString(topKey) != null && 
+							jsonBin.getString(innerKey) != null && jsonBin.getString(innerValue) != null){
+						Map<String, String> innerMap = new  HashMap<String, String>();	
+						innerMap.put(jsonBin.getString(innerKey),	jsonBin.getString(innerValue));
+						topMap.put(jsonBin.getString(topKey), innerMap);
+					}
+				}catch (JSONException e) {}
+			}
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (QueryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return topMap;
+	}
+	
 	
 	public static void main(String[] args){
 		//Storage s = PostgreStorage.getInstace();

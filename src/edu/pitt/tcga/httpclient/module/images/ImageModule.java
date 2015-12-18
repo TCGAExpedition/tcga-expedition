@@ -122,9 +122,10 @@ public class ImageModule extends TCGAModule {
 		al.setBarcode(barcode);
 		if(CodesUtil.getDiseaseAbbrFromURL(lb.getUrl()).equalsIgnoreCase("FPPP"))
 			al.setDiseaseStudyAbb(CodesUtil.getDiseaseAbbFromBarcode(al.getBarcode()));
-		try{
+		// well, it looks like sometimes a wrong uuid is being attached to the file name
+		/*try{
 			al.setOrigUUID((lbName.substring(pos+1, lbName.indexOf(".svs"))).toLowerCase());
-		} catch (StringIndexOutOfBoundsException e){}
+		} catch (StringIndexOutOfBoundsException e){}*/
 		al.setFileFractionType("slide_image");
 		al.setCenterName(CodesUtil.getCenterNameFromArchive(al.getArchiveName()));
 		al.setCenterCode(CodesUtil.getCenterAbbFromArchName(al.getCenterName()));

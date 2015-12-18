@@ -10,8 +10,10 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -92,6 +94,12 @@ public class ExpProtein_Module extends TCGAModule {
 	private Map<File, String> metaFiles = new HashMap<File, String>(); // tcgaUrl,
 																		// pgrrFile
 	private boolean metaJustCreated = false;
+	
+	private List<String> mageFileCols = Arrays.asList("Array Data File","Image File","Derived Array Data File",
+			"Derived Array Data Matrix File","Sample Name");
+	
+	//FOR BRCA first run ONLY!!!
+	private boolean canDo = false;
 
 	@Override
 	public String[] getResourceEndings() {
@@ -121,7 +129,7 @@ public class ExpProtein_Module extends TCGAModule {
 	@Override
 	public boolean canProcessArchive(LineBean archiveBean) {
 		String archiveName = archiveBean.getName();
-		return (archiveName.indexOf(".Level_") != -1 || archiveName
+		return (archiveName.toLowerCase().indexOf(".level_") != -1 || archiveName
 				.indexOf(".mage-tab.") != -1);
 	}
 
@@ -137,11 +145,11 @@ public class ExpProtein_Module extends TCGAModule {
 			if (acceptableEnding(lb.getName(), getResourceEndings())
 					&& !TCGAHelper.stringContains(lb.getName(),
 							MySettings.infoFilesList)) {
-				// System.out.println("ExpProtein.processData working with: "+lb.getUrl());
+			System.out.println("ExpProtein.processData working with: "+lb.getUrl());
 				// clear meta for a new archive
 				if (lb.getName().endsWith(".sdrf.txt")
-						|| lb.getName().endsWith(".array_design.txt")
-						|| lb.getName().endsWith(".antibody_annotation.txt")) {
+						|| lb.getName().indexOf(".array_design.") != -1
+						|| lb.getName().indexOf(".antibody_annotation.") != -1) {
 					if (!diseaseAbbr.equals(lb.getDiseaseStudy())) {
 						diseaseAbbr = lb.getDiseaseStudy();
 						metaJustCreated = true;
@@ -155,17 +163,42 @@ public class ExpProtein_Module extends TCGAModule {
 
 					}
 					if (lb.getName().endsWith(".sdrf.txt")) {
-
+System.out.println("Start Read Metadata file");
 						HttpClient httpclient = TCGAHelper.getHttpClient();
 						InputStream is = TCGAHelper.getGetResponseInputStream(
 								httpclient, lb.getFullURL());
 
 						CSVReader reader = new CSVReader(new BufferedReader(
 								new InputStreamReader(is)), '\t');
-		System.out.println("for sdrf lb.url: "
-				+ lb.getFullURL());
+						String[] readLine = null;
+						boolean isHeader = true;
+						List<String[]> allData = new LinkedList<String[]>();
+						int newSz = mageFileCols.size();
+						int[] colNums = new int[newSz];
 						try {
-							dataMatrix.setData(reader.readAllToList());
+							while ((readLine = reader.readNext()) != null) {
+								if (isHeader) {
+									//match columns to be copied
+									int k = 0;
+									int headK = 0;
+									for(String sHead: readLine){
+										if(mageFileCols.contains(sHead)){
+											colNums[k] = headK;
+											k++;
+										}
+										headK++;	
+									}
+									allData.add(subsetFromRow(colNums, readLine));
+									isHeader = false;
+								} else{
+									allData.add(subsetFromRow(colNums, readLine));
+								}
+							
+									
+							}		
+									
+							dataMatrix.setData(allData);
+				System.out.println("Done Read Metadata file");
 							reader.close();
 							is.close();
 							httpclient.getConnectionManager().shutdown();
@@ -177,8 +210,8 @@ public class ExpProtein_Module extends TCGAModule {
 						+ lb.getFullURL());
 						}
 
-					} else if (lb.getName().endsWith(".array_design.txt")
-							|| lb.getName().endsWith("antibody_annotation.txt")) {
+					} else if (lb.getName().indexOf(".array_design.") != -1
+							|| lb.getName().indexOf("antibody_annotation.") != -1) {
 						// save metadata in
 						pgrrPath = MySettings.SUPERCELL_HOME
 								+ File.separator
@@ -219,7 +252,7 @@ public class ExpProtein_Module extends TCGAModule {
 					// System.out.println("		WWWWW metaJustCreated:  "+metaJustCreated);
 					// at this point the metadata files should be created, so
 					// create common metafiles
-					if (metaJustCreated) {
+					if (metaJustCreated) {/*
 						metaJustCreated = false;
 						File metaF = null;
 						List<Integer> selectedRows = null;
@@ -262,14 +295,18 @@ public class ExpProtein_Module extends TCGAModule {
 							uniqueUUIDs = null;
 						}
 
-					}
+					*/}
 					cn++;
 
 					// clear tempo dir
 					clearTempoDir();
 					System.gc();
 
-		System.out.println(lb.getDiseaseStudy() + " : " + cn+ " out of " + sz + "  lb.n = " + lb.getUrl()+ " level: " + lb.getLevel());
+					//System.out.println(lb.getDiseaseStudy() + " : " + cn+ " out of " + sz + "  lb.url = " + lb.getUrl()+ " level: " + lb.getLevel());		
+if(!canDo && lb.getUrl().equals("/tumor/brca/cgcc/mdanderson.org/mda_rppa_core/protein_exp/mdanderson.org_BRCA.MDA_RPPA_Core.Level_2.1.2.0/mdanderson.org_BRCA.MDA_RPPA_Core.SuperCurve.Level_2.010B8D0C-9E26-464A-9820-87356E82DEBC.txt"))
+	canDo = true;
+if(canDo){
+	System.out.println(lb.getDiseaseStudy() + " : " + cn+ " out of " + sz + "  lb.url = " + lb.getUrl()+ " level: " + lb.getLevel());		
 					// level 1 has mulitple "samples" in one file.
 					// (1) save it in
 					// <diseaseAbbbr>/<analysistype>/<centerCode>_<platform>/<tcga_archveName>/
@@ -355,25 +392,30 @@ System.out.println("   *** Level 1 file: "+ level1File.getName() + "   num " + c
 							e.printStackTrace();
 						}
 
+
 						if (al != null) {
-							// int cc = 0;
-							// for(Aliquot all:als){
-							// System.out.println("			*** "+cc+"   ***");
-							// all.print();
-							// cc++;
-							// }
-							al.print();
+							 al.print();				
 							ModuleUtil.transferNew(new Aliquot[] { al });
 
 						}
 					}
-
+}// if canDo
 				} // fNameEnding != null
 			}
 
 		} // for(LineBean lb:levBeans)
 
 	}
+		
+		private String[] subsetFromRow(int[] colNums, String[] row){
+			String [] dat = new String[colNums.length];
+			int i = 0;
+			for(int k:colNums){
+				dat[i] = row[k].toLowerCase();
+				i++;
+			}
+			return dat;
+		}
 
 	public List<String> getUniqueUUIDS(DataMatrix dm,
 			List<Integer> selectedRows, String uuidColName) {
@@ -484,9 +526,8 @@ System.out.println("   *** Level 1 file: "+ level1File.getName() + "   num " + c
 
 	public Aliquot constructAliquot(LineBean lb) {
 
-		String lbName = lb.getName();
+		String lbName = lb.getName().toLowerCase();
 		String uuid = "";
-
 		int rowNum = getDataRowNum(lbName, getFileColNum(dataMatrix, lbName));
 		if (rowNum > -1) {
 			Aliquot al = new Aliquot(lb.getUrl(), getDataType(),
@@ -516,10 +557,10 @@ System.out.println("   *** Level 1 file: "+ level1File.getName() + "   num " + c
 
 			return al;
 		} else {
-			String err = "ExpProteinModule: can't find in mage-tab a row for "
+			String err = "   ***** ExpProteinModule: can't find in mage-tab a row for "
 					+ lb.getFullURL() + "\n name: " + lbName;
 			System.err.println(err);
-			ErrorLog.logFatal(err);
+			ErrorLog.log(err);
 			return null;
 		}
 	}
@@ -582,7 +623,7 @@ System.out.println("   *** Level 1 file: "+ level1File.getName() + "   num " + c
 
 		// below just test
 		String[] urls = { MySettings.PUB_ROOT_URL
-				+ "acc/cgcc/mdanderson.org/mda_rppa_core/protein_exp/"
+				+ "brca/cgcc/mdanderson.org/mda_rppa_core/protein_exp/"
 
 		};
 

@@ -2,6 +2,7 @@ package edu.pitt.tcga.httpclient;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-
+import org.apache.commons.io.FileUtils;
 
 import edu.pitt.tcga.httpclient.module.TCGAModule;
 import edu.pitt.tcga.httpclient.module.cnv.CN_Level4;
@@ -30,7 +31,7 @@ public class TCGAExpedition {
 	
 	public static void createDirs(){
 		String [] dirs = {MySettings.SUPERCELL_HOME, MySettings.RUNTIME_DATA_DIR,
-				MySettings.TEMPO_DIR, MySettings.NQ_UPLOAD_DIR,
+				MySettings.TEMPO_DIR, MySettings.NQ_UPLOAD_DIR, MySettings.LOG_DIR,
 				MySettings.NQ_UPLOAD_HISTORY_DIR, MySettings.REPORTS_DIR,
 				MySettings.LOG_DIR, MySettings.BAM_SUMMARY_DIR, MySettings.NEW_TSS_DIR, MySettings.METADATA_DIR};
 	
@@ -143,8 +144,6 @@ public class TCGAExpedition {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//org.apache.log4j.BasicConfigurator.configure(new NullAppender());
-
 		
 		// create unique directories for this particular instance;
 		String[] diseaseList = null;
@@ -231,10 +230,18 @@ public class TCGAExpedition {
 				
 				for(String disAbbr:diseaseList){
 		//System.out.println("dir: "+ root+disAbbr+"/");
-					scrape(TCGAHelper.getPageBeans(root+disAbbr+"/"), resourceKey, analysisDirName);
+					scrape(TCGAHelper.getPageBeans(root+disAbbr.trim()+"/"), resourceKey, analysisDirName);
 				}
 			} else // scan all
 				scrape(TCGAHelper.getPageBeans(root), resourceKey, analysisDirName);
+		}
+		
+		// delete  runtime TEMPO DIR
+		try {
+			FileUtils.deleteDirectory(new File(MySettings.TEMPO_DIR));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	

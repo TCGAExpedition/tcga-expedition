@@ -77,9 +77,9 @@ public class VirtuosoStorage extends Storage {
 	    	VIRT_USER = MySettings.getStrProperty("virt.user");
 	    	VIRT_PWD = MySettings.getStrProperty("virt.pwd");
 	    	
-	    	VIRT_SPARQL_URL = "http://" + VIRT_HOST+":" + VIRT_PORT+"/" + getStrProperty("virt.spargl.endpoint");
+	    	VIRT_SPARQL_URL = "http://" + VIRT_HOST+":" + VIRT_PORT+"/" + MySettings.getStrProperty("virt.sparql.endpoint");
 	    	VIRT_UPDATE_URL = "http://" + VIRT_USER + 
-	    			":" + VIRT_PWD + "@" + VIRT_HOST+":"+ VIRT_PORT+"/" + getStrProperty("virt.update.endpoint");
+	    			":" + VIRT_PWD + "@" + VIRT_HOST+":"+ VIRT_PORT+"/" + MySettings.getStrProperty("virt.update.endpoint");
 	    	checkStorageExists();
 	    	} catch (Exception e) {}
     	}
@@ -211,7 +211,7 @@ public class VirtuosoStorage extends Storage {
 		try {	
 			String respStr = getPostResponse(buildQueryURL(VIRT_SPARQL_URL, query), qHeaderTypes, 
 					qHeaderValues, null);
-//System.out.println("VirtStorage respStr: "+respStr);
+
 				json = new JSONObject(respStr);
 			return json;
 
@@ -247,36 +247,12 @@ public class VirtuosoStorage extends Storage {
 		return toret;
 	}
   
-    
-    @Override 
-	public Map<String, String> getClinBarcodeUUID() {
-    	try{
-			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(getStrProperty("ORIG_CLIN_BARCODE_UUID_Q")));			
-			Map<String, String> map = new  HashMap<String, String>();
-			
-			if(bindings == null) return map;
-			String id = null;
-			for (int i = 0; i < bindings.length(); i++) {
-				JSONObject jsonBin = new JSONObject(bindings.getString(i));
-				id = new JSONObject(jsonBin.getString("id")).getString("value");
-				id = id.replace(MySettings.PGRR_PREFIX_URI, "");
-				map.put(new JSONObject(jsonBin.getString("barcode")).getString("value"),
-						id);
-			}
-			return map;
-		} catch (JSONException e) {
-			return null;
-		} catch (QueryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-		}
-	}
-    
+   
     @Override
     public List<String[]> resultAsList(String query, String[] fieldNames){
+    	List<String[]> toret = new ArrayList<String[]>();
 		try{
-			List<String[]> toret = new ArrayList<String[]>();
+			
 			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));			
 			
 			int len = fieldNames.length;
@@ -294,14 +270,12 @@ public class VirtuosoStorage extends Storage {
 				}
 				toret.add(sArr);
 			}
-			return toret;
 		} catch (JSONException e) {
-			return null;
 		} catch (QueryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
 		}
+		return toret;
 	}
     
     @Override
@@ -504,9 +478,10 @@ public class VirtuosoStorage extends Storage {
 	
 	@Override
 	public Map<String, String> getMap(String query, String keyName, String valName){
+		Map<String, String> map = new  HashMap<String, String>();
 		try{
 			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));			
-			Map<String, String> map = new  HashMap<String, String>();
+			
 			
 			if(bindings == null) return map;
 			String id = null;
@@ -517,13 +492,32 @@ public class VirtuosoStorage extends Storage {
 				map.put(new JSONObject(jsonBin.getString(keyName)).getString("value"),
 						new JSONObject(jsonBin.getString(valName)).getString("value"));
 			}
-			return map;
 		} catch (JSONException e) {
-			return null;
 		} catch (QueryException e) {
 			e.printStackTrace();
-			return null;
 		}
+		return map;
+	}
+	
+	@Override
+	public Map<String, Map<String, String>> getMapOfMap(String query, String topKey, String innerKey, String innerValue){
+		Map<String, Map<String, String>> topMap = new  HashMap<String, Map<String, String>>();
+		try{
+			JSONArray bindings =  QueryHelper.getBindings(getJSONResult(query));			
+			if(bindings == null) return topMap;
+			String id = null;
+			for (int i = 0; i < bindings.length(); i++) {
+				JSONObject jsonBin = new JSONObject(bindings.getString(i));
+				Map<String, String> innerMap = new  HashMap<String,String>();
+				innerMap.put(new JSONObject(jsonBin.getString(innerKey)).getString("value"),
+						new JSONObject(jsonBin.getString(innerValue)).getString("value"));
+				topMap.put(new JSONObject(jsonBin.getString(topKey)).getString("value"), innerMap);
+			}
+		} catch (JSONException e) {
+		} catch (QueryException e) {
+			e.printStackTrace();
+		}
+		return topMap;
 	}
 	
 	

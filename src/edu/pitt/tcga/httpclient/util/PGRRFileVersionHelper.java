@@ -23,7 +23,7 @@ public class PGRRFileVersionHelper {
 	
 	private String diseaseAbbr = "";
 	private String analysisType = "";
-	private Map<String, PGRR_RecordBean> currRecordsMapBymd5 = new HashMap<String, PGRR_RecordBean> (); //<md5, PGRR_ReocordBean>
+	private Map<String, PGRR_RecordBean> currRecordsMapBymd5 = new HashMap<String, PGRR_RecordBean> (); //<md5, PGRR_RecordBean>
 	private String[] recordFields = {"tcgaarchivepath","pgrrpath","pgrrfilename","version","fileextension","md5checksum","pgrruuid",
 			"fractiontype","refgenomename","level","barcode","filetype"};
 
