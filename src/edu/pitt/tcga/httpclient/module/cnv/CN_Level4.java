@@ -53,10 +53,9 @@ import edu.pitt.tcga.httpclient.util.TCGAHelper;
  * 
  * To maintain the versions of the common files:
  * (1) rename common files: "<analysisDate>_"+origFileName
- * (2) TODO :ARCHIVE the record HERE if has previous version
+ * (2) TODO :ARCHIVE the record HERE if has previous version\
+ * 
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  *
  */
 public class CN_Level4 extends HumanHap550_1MDuo{

@@ -16,8 +16,6 @@ import edu.pitt.tcga.httpclient.util.TCGAHelper;
  * @author opm1
  *
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  *
  */
 

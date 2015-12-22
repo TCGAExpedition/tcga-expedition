@@ -12,8 +12,6 @@ import edu.pitt.tcga.httpclient.storage.StorageFactory;
  * each clinical file for reporting the missing records in the current archive.
  * 
  * @author opm1
- * @version 1
- * @since Dec 5, 2015
  * 
  */
 public class ClinicalHelper {

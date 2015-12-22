@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 
 import org.apache.commons.dbutils.QueryRunner;
@@ -52,6 +53,10 @@ public class PostgreStorage extends Storage {
 	
 	private static final Storage INSTANCE = new PostgreStorage();
 	
+	// used for reconnection to DB if the connection has been dropped on the backend.
+	private static int MAX_CONNECTION_ATTEMPTS = 3;
+	private static int currNumOfRecoonections = 0;
+	
 	public static Storage getInstace(){
         return INSTANCE;
     }
@@ -76,13 +81,38 @@ public class PostgreStorage extends Storage {
 			if (conn == null || conn.isClosed()) {
 				try {
 					Class.forName(DRIVER).newInstance();
-					conn = DriverManager.getConnection(URL, USER, PASS);
+					Properties props = new Properties();
+					props.setProperty("user",USER);
+					props.setProperty("password",PASS);
+					props.setProperty("tcpKeepAlive","true");
+					conn = DriverManager.getConnection(URL, props);
+					
+					currNumOfRecoonections = 0;
 				} catch (org.postgresql.util.PSQLException e) {
 					String mess = e.getMessage();
 					if(mess.startsWith("FATAL: database") && mess.endsWith("does not exist"))
 						System.err.println("NO DBL "+mess);
 					throw new Exception("PostgreStorage getConnection: "+e.getMessage());
 				} 
+			}
+			// check connection is alive on the server side
+			else {
+				try{
+					Statement  stmt = conn.createStatement();
+	    			ResultSet rs = stmt.executeQuery("SELECT 1;");
+				}catch (SQLException e) {
+					if(currNumOfRecoonections < MAX_CONNECTION_ATTEMPTS){
+						disconnect();
+						conn = null;
+						currNumOfRecoonections++;
+						return getConnection();
+					}
+					else{
+						String err = "PostgreStorage can't reconnect to server URL: "+URL;
+						System.err.println(err);
+						ErrorLog.logFatal(err);
+					}
+				}
 			}
 		} catch (SQLException e) {
 			ErrorLog.log("PostgreStorage getConnection SQLException: "+e.getMessage());
@@ -96,15 +126,15 @@ public class PostgreStorage extends Storage {
 		if(conn == null)
 			return;
 		try {
-			if (conn != null || !conn.isClosed())
+			if (conn != null || !conn.isClosed()){
 				conn.close();
+				conn = null;
+			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			ErrorLog.log("PostgreStorage disconnect: "+e.getMessage());
+			//e.printStackTrace();
+			//ErrorLog.log("PostgreStorage disconnect: "+e.getMessage());
 		} catch (NullPointerException ex){
-			ex.printStackTrace();
-			ErrorLog.log("PostgreStorage disconnect: "+ex.getMessage());
+
 		}
 	}
 	

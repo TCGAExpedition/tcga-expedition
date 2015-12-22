@@ -19,8 +19,6 @@ import edu.pitt.tcga.httpclient.util.MySettings;
  * and contain the same info as in pgrr_meta table (Postgres) or pgrr-meta graph (Virtuoso)
  * 
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  *
  */
 public class MetadataHelper {

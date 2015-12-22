@@ -99,7 +99,7 @@ public class ExpProtein_Module extends TCGAModule {
 			"Derived Array Data Matrix File","Sample Name");
 	
 	//FOR BRCA first run ONLY!!!
-	private boolean canDo = false;
+	//private boolean canDo = false;
 
 	@Override
 	public String[] getResourceEndings() {
@@ -252,7 +252,7 @@ System.out.println("Start Read Metadata file");
 					// System.out.println("		WWWWW metaJustCreated:  "+metaJustCreated);
 					// at this point the metadata files should be created, so
 					// create common metafiles
-					if (metaJustCreated) {/*
+					if (metaJustCreated) {
 						metaJustCreated = false;
 						File metaF = null;
 						List<Integer> selectedRows = null;
@@ -295,7 +295,7 @@ System.out.println("Start Read Metadata file");
 							uniqueUUIDs = null;
 						}
 
-					*/}
+					}
 					cn++;
 
 					// clear tempo dir
@@ -303,9 +303,9 @@ System.out.println("Start Read Metadata file");
 					System.gc();
 
 					//System.out.println(lb.getDiseaseStudy() + " : " + cn+ " out of " + sz + "  lb.url = " + lb.getUrl()+ " level: " + lb.getLevel());		
-if(!canDo && lb.getUrl().equals("/tumor/brca/cgcc/mdanderson.org/mda_rppa_core/protein_exp/mdanderson.org_BRCA.MDA_RPPA_Core.Level_2.1.2.0/mdanderson.org_BRCA.MDA_RPPA_Core.SuperCurve.Level_2.010B8D0C-9E26-464A-9820-87356E82DEBC.txt"))
-	canDo = true;
-if(canDo){
+//(!canDo && lb.getUrl().equals("/tumor/brca/cgcc/mdanderson.org/mda_rppa_core/protein_exp/mdanderson.org_BRCA.MDA_RPPA_Core.Level_2.1.2.0/mdanderson.org_BRCA.MDA_RPPA_Core.SuperCurve.Level_2.010B8D0C-9E26-464A-9820-87356E82DEBC.txt"))
+//	canDo = true;
+//if(canDo){
 	System.out.println(lb.getDiseaseStudy() + " : " + cn+ " out of " + sz + "  lb.url = " + lb.getUrl()+ " level: " + lb.getLevel());		
 					// level 1 has mulitple "samples" in one file.
 					// (1) save it in
@@ -399,7 +399,7 @@ System.out.println("   *** Level 1 file: "+ level1File.getName() + "   num " + c
 
 						}
 					}
-}// if canDo
+//}// if canDo
 				} // fNameEnding != null
 			}
 

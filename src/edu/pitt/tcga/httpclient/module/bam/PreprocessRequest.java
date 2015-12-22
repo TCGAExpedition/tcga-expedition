@@ -31,8 +31,6 @@ import edu.pitt.tcga.httpclient.util.TCGAHelper;
  * from https://cghub.ucsc.edu/reports/SUMMARY_STATS/LATEST_MANIFEST.tsv.
  *
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  *
  */
 

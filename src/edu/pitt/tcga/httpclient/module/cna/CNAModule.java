@@ -26,8 +26,6 @@ import edu.pitt.tcga.httpclient.util.TCGAHelper;
  * See Data description: https://wiki.nci.nih.gov/display/TCGA/aCGH+copy+number+data
  *
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  *
  */
 

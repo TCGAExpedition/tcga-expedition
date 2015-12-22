@@ -4,8 +4,6 @@ package edu.pitt.tcga.httpclient.module.clin;
  * Holds parameters to ease the finding of missing records.
  * 
  * @author opm1
- * @version 1
- * @since Dec 5, 2015
  * 
  */
 public class ClinicalBean {

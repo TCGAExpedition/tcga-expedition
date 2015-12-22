@@ -23,19 +23,22 @@ import edu.pitt.tcga.httpclient.util.MySettings;
  * Creates metadata about downloaded BAM files and moves BAM files to
  * repository.
  * 
- * Steps: 1. Scan /supercell/bam_requests/finished_downloads for
- * <one_level>/final_files, readin finished_*.tsv 2. create a orig_finished_* 3.
- * Create Metadata.tsv and RDF triples for finished files 4. save resulting tsv
- * as DONE_bam_status_<disAbbr>_<dataType>.tsv in /supercell/bam_requests/done
- * dir 5. Remove finished_*.tsv 6. move files: ATT: Wait until the disease is
- * Done! SOURCE=/supercell/tcga_downloads/brca DEST=/supercell/tcga/brca cd
- * ${SOURCE}; find . -type d -exec mkdir -p ${DEST}/\{} \; find . -type f -exec
- * mv -i \{} ${DEST}/\{} \; 7. clear empty dirs in the SOURCE dir 8. upload RDF
- * triples to Postgres - ATTN: now it's a manual process!
+ * Steps: 
+ * 1. Scan /supercell/bam_requests/finished_downloads for <one_level>/final_files, readin finished_*.tsv 
+ * 2. Create a copy of a finished file with prefix 'orig_finished_' 
+ * 3. Create Metadata.tsv and RDF triples for finished files 
+ * 4. Save resulting tsv as DONE_bam_status_<disAbbr>_<dataType>.tsv in <bam_requests>/done dir
+ * 5. Remove 'finished_*.tsv' 
+ * 6. Move files:
+ * 		SOURCE=<bam_downloads_dir>/<disAbbr> 
+ * 		DEST=<repository_dir/<disAbbr> 
+ * 		cd ${SOURCE}; 
+ * 		find . -type d -exec mkdir -p ${DEST}/\{} \; 
+ * 		find . -type f -exec mv -i \{} ${DEST}/\{} \; 
+ * 7. clear empty dirs in the SOURCE dir 
+ * 8. upload RDF triples to Postgres - ATTN: now it's a manual process!
  * 
  * @author opm1
- * @version 1
- * @since Dec 11, 2015
  * 
  */
 public class BAMMetadataManager {

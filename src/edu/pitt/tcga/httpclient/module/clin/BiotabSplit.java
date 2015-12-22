@@ -19,8 +19,6 @@ import edu.pitt.tcga.httpclient.util.MySettings;
  * repository and creates metadata.
  * 
  * @author opm1
- * @version 1
- * @since Dec 5, 2015
  * 
  */
 

@@ -25,8 +25,6 @@ import edu.pitt.tcga.httpclient.util.TCGAHelper;
  * metadata browser.
  * 
  * @author opm1
- * @version 1
- * @since Dec 5, 2015
  * 
  */
 public class BiotabParser {
