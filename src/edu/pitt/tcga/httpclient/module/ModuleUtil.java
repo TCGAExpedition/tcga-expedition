@@ -46,7 +46,7 @@ public class ModuleUtil {
 	// repository directory
 	// and contain the same info as in pgrr_meta table (Postgres) or pgrr-meta
 	// graph (Virtuoso)
-	public static boolean SAVE_METADATA = true;
+	public static boolean SAVE_METADATA = false;
 
 	// <FileName, current portion>
 	public static Map<String, Integer> existingFiles = new HashMap<String, Integer>();
