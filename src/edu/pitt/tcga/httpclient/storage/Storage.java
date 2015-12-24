@@ -21,7 +21,7 @@ public abstract class Storage {
 	private  Properties params = null;
 	private static SimpleDateFormat df = null ;
 
-	public static boolean UPDATE_IN_REAL_TIME = false;
+	public static boolean UPDATE_IN_REAL_TIME = true;
 	public static boolean CHECKED_STORAGE_EXISTS = false;
 	
 	protected File updateLogFile = null;
