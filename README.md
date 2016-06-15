@@ -12,16 +12,42 @@ Unix 64-bit. Java 1.7
 
 #Installation
 
-<b>1. Select and install one of the supported storage</b>
+####1. Select and install one of the supported storage<
 
- - <i>PostgreSLQ</i>: http://www.postgresql.org/download/
- - <i>Virtuoso</i>: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
+ - *PostgreSLQ*: http://www.postgresql.org/download/
+ - *Virtuoso*: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
  
 <b>NOTE:</b> We recommend to use PostgreSQL - it's much faster than RDF store.
 
-<b>2. Configure</b>
+####2. Configure
 
-Go through resources/tcgaexpedition.conf file and add required fields.
+Set parameters in resources/tcgaexpedition.conf file:
+
+__Required:__
+
+ - <i>TCGA credentials. Leave blank if download public data only</i>
+
+	*tcga.user*
+
+	*tcga.pwd*
+
+ - <i>Storage selection. Uncomment 'postgres' or 'virtuoso'</i>
+
+	*storage.name*=postgres
+
+	*#storage.name*=virtuoso
+
+ - <i>Set access parameters for PostgreSQL or Virtuoso</i>
+
+ - <i>Set local repository location</i>
+
+	*repository.home*
+
+__Optional:__
+
+ - <i>Email used to send updates to the web portal subscribers</i>
+ 
+ - <i>Sender and receiver emails for notification about ambiguous tissue source site names</i>
 
 #How to Run
 ```
