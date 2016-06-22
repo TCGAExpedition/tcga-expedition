@@ -4,7 +4,7 @@ The Cancer Genome Atlas Project (TCGA) is a National Cancer Institute effort to 
 We developed TCGAExpedition to support the research community focused on computational methods for cancer research. Data obtained, versioned, and archived using TCGAExpedition supports analysis with third-party tools as well as command line access at high-performance computing facilities. TCGAExpedition software consists of a set of scripts written in Bash, Python and Java that download, extract, harmonize, version and store all TCGA data and metadata. The software generates a versioned, participant- and sample-centered, local TCGA data directory with metadata structures that directly reference the local data files as well as the original data files. The software supports flexible searches of the data via a web portal, user-centric data tracking tools, and data provenance tools.
 
 
-See TCGAExpedition installation and demo [video](https://youtu.be/bpcQiBNf8Fc)
+See TCGAExpedition installation and demo [video](https://youtu.be/bpcQiBNf8Fc).
 
 
 # Access Requirements
