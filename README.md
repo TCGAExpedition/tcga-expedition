@@ -1,7 +1,11 @@
 #tcga-expedition
 The Cancer Genome Atlas Project (TCGA) is a National Cancer Institute effort to profile about 24K cases of 33 different tumor types using genomic platforms and to make these data, both raw and processed, available to all researchers. TCGA data are currently over 1.4 Petabyte in size and include whole genome sequence (WGS), whole exome sequence, methylation, RNA expression, proteomic, and clinical datasets. Publicly accessible TCGA data are released through public portals, but many challenges exist in navigating and using data obtained from these sites.
 
-We developed TCGA Expedition to support the research community focused on computational methods for cancer research. Data obtained, versioned, and archived using TCGA Expedition supports analysis with third-party tools as well as command line access at high-performance computing facilities. TCGA Expedition software consists of a set of scripts written in Bash, Python and Java that download, extract, harmonize, version and store all TCGA data and metadata. The software generates a versioned, participant- and sample-centered, local TCGA data directory with metadata structures that directly reference the local data files as well as the original data files. The software supports flexible searches of the data via a web portal, user-centric data tracking tools, and data provenance tools.
+We developed TCGAExpedition to support the research community focused on computational methods for cancer research. Data obtained, versioned, and archived using TCGAExpedition supports analysis with third-party tools as well as command line access at high-performance computing facilities. TCGAExpedition software consists of a set of scripts written in Bash, Python and Java that download, extract, harmonize, version and store all TCGA data and metadata. The software generates a versioned, participant- and sample-centered, local TCGA data directory with metadata structures that directly reference the local data files as well as the original data files. The software supports flexible searches of the data via a web portal, user-centric data tracking tools, and data provenance tools.
+
+
+See TCGAExpedition installation and demo [video](https://youtu.be/bpcQiBNf8Fc)
+
 
 # Access Requirements
 Users accessing controlled data will need to have a [dbGAP](http://www.ncbi.nlm.nih.gov/gap) Data Use Certificate.
@@ -12,7 +16,7 @@ Unix 64-bit. Java 1.7
 
 #Installation
 
-####1. Select and install one of the supported storage<
+####1. Select and install one of the supported storage
 
  - *PostgreSLQ*: http://www.postgresql.org/download/
  - *Virtuoso*: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
@@ -62,7 +66,7 @@ Usage: java -jar tcgaExpedition-<vx.x.x>.jar --diseaseList <list> --analysistype
 
 Download Clinical data for acc:
 ```bash
-java -jar tcgaExpedition-<vx.x.x>.jar acc clinical public
+java -jar tcgaExpedition-<vx.x.x>.jar brca clinical public
 ```
 
 #Availalbe Analysis / Access Types
