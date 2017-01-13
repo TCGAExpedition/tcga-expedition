@@ -18,7 +18,7 @@ Unix 64-bit. Java 1.7
 
 ####1. Select and install one of the supported storage
 
- - *PostgreSLQ*: http://www.postgresql.org/download/
+ - *PostgreSQL*: http://www.postgresql.org/download/
  - *Virtuoso*: http://virtuoso.openlinksw.com/dataspace/doc/dav/wiki/Main/VOSDownload
  
 <b>NOTE:</b> We recommend to use PostgreSQL - it's much faster than RDF store.
@@ -69,7 +69,7 @@ Download Clinical data for acc:
 java -jar tcgaExpedition-<vx.x.x>.jar brca clinical public
 ```
 
-#Availalbe Analysis / Access Types
+#Available Analysis / Access Types
 
 <HTML>
 
